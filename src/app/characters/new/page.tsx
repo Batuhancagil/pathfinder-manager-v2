@@ -50,7 +50,6 @@ export default function NewCharacterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedPDF, setSelectedPDF] = useState<File | null>(null);
-  const [extractedData, setExtractedData] = useState<any>(null);
 
   const [formData, setFormData] = useState<CharacterFormData>({
     name: '',
@@ -115,204 +114,6 @@ export default function NewCharacterPage() {
     setSelectedPDF(file);
   };
 
-  const handleDataExtracted = (data: any) => {
-    setExtractedData(data);
-    console.log('Extracted data from PDF:', data);
-    
-    // PDF'den çıkarılan verileri form'a otomatik doldur
-    if (data.text) {
-      const text = data.text;
-      
-      // Pathfinder specific parsing
-      const extractedInfo = parsePathfinderCharacterSheet(text);
-      
-      if (extractedInfo.name) {
-        setFormData(prev => ({ ...prev, name: extractedInfo.name }));
-      }
-      
-      if (extractedInfo.race) {
-        setFormData(prev => ({ ...prev, race: extractedInfo.race }));
-      }
-      
-      if (extractedInfo.class) {
-        setFormData(prev => ({ ...prev, class: extractedInfo.class }));
-      }
-      
-      if (extractedInfo.level) {
-        setFormData(prev => ({ ...prev, level: extractedInfo.level }));
-      }
-      
-      if (extractedInfo.background) {
-        setFormData(prev => ({ ...prev, background: extractedInfo.background }));
-      }
-      
-      if (extractedInfo.alignment) {
-        setFormData(prev => ({ ...prev, alignment: extractedInfo.alignment }));
-      }
-      
-      if (extractedInfo.abilityScores) {
-        setFormData(prev => ({ 
-          ...prev, 
-          abilityScores: { ...prev.abilityScores, ...extractedInfo.abilityScores }
-        }));
-      }
-      
-      if (extractedInfo.hitPoints) {
-        setFormData(prev => ({ ...prev, hitPoints: extractedInfo.hitPoints }));
-      }
-      
-      if (extractedInfo.armorClass) {
-        setFormData(prev => ({ ...prev, armorClass: extractedInfo.armorClass }));
-      }
-      
-      if (extractedInfo.speed) {
-        setFormData(prev => ({ ...prev, speed: extractedInfo.speed }));
-      }
-    }
-  };
-
-  const parsePathfinderCharacterSheet = (text: string) => {
-    const result: any = {};
-    
-    // Character Name - look for "Character Name" followed by text
-    const nameMatch = text.match(/Character Name\s+([A-Za-z\s]+)/i);
-    if (nameMatch) {
-      result.name = nameMatch[1].trim();
-    }
-    
-    // Level - look for "Level" followed by number
-    const levelMatch = text.match(/Level\s+(\d+)/i);
-    if (levelMatch) {
-      result.level = parseInt(levelMatch[1]);
-    }
-    
-    // Hit Points - look for "Hit Points" or "HP" followed by number
-    const hpMatch = text.match(/(?:Hit Points|HP)\s+(\d+)/i);
-    if (hpMatch) {
-      result.hitPoints = parseInt(hpMatch[1]);
-    }
-    
-    // Armor Class - look for "Armor Class" followed by number
-    const acMatch = text.match(/Armor Class\s+(\d+)/i);
-    if (acMatch) {
-      result.armorClass = parseInt(acMatch[1]);
-    }
-    
-    // Speed - look for "Speed" followed by number and "feet"
-    const speedMatch = text.match(/Speed\s+(\d+)\s*feet/i);
-    if (speedMatch) {
-      result.speed = parseInt(speedMatch[1]);
-    }
-    
-    // Ability Scores - look for specific patterns
-    const abilityScores: any = {};
-    
-    // Strength
-    const strMatch = text.match(/Strength\s+(\d+)/i);
-    if (strMatch) {
-      abilityScores.strength = parseInt(strMatch[1]);
-    }
-    
-    // Dexterity
-    const dexMatch = text.match(/Dexterity\s+(\d+)/i);
-    if (dexMatch) {
-      abilityScores.dexterity = parseInt(dexMatch[1]);
-    }
-    
-    // Constitution
-    const conMatch = text.match(/Constitution\s+(\d+)/i);
-    if (conMatch) {
-      abilityScores.constitution = parseInt(conMatch[1]);
-    }
-    
-    // Intelligence
-    const intMatch = text.match(/Intelligence\s+(\d+)/i);
-    if (intMatch) {
-      abilityScores.intelligence = parseInt(intMatch[1]);
-    }
-    
-    // Wisdom
-    const wisMatch = text.match(/Wisdom\s+(\d+)/i);
-    if (wisMatch) {
-      abilityScores.wisdom = parseInt(wisMatch[1]);
-    }
-    
-    // Charisma
-    const chaMatch = text.match(/Charisma\s+(\d+)/i);
-    if (chaMatch) {
-      abilityScores.charisma = parseInt(chaMatch[1]);
-    }
-    
-    if (Object.keys(abilityScores).length > 0) {
-      result.abilityScores = abilityScores;
-    }
-    
-    // Race detection - look for common Pathfinder races
-    const races = [
-      'human', 'elf', 'dwarf', 'halfling', 'gnome', 'half-orc', 'tiefling',
-      'aasimar', 'catfolk', 'changeling', 'dhampir', 'duskwalker', 'fetchling',
-      'goblin', 'hobgoblin', 'kobold', 'leshy', 'lizardfolk', 'orc', 'ratfolk',
-      'tengu', 'undine', 'versatile heritage'
-    ];
-    
-    const foundRace = races.find(race => 
-      text.toLowerCase().includes(race.toLowerCase())
-    );
-    if (foundRace) {
-      result.race = foundRace;
-    }
-    
-    // Class detection - look for common Pathfinder classes
-    const classes = [
-      'alchemist', 'barbarian', 'bard', 'champion', 'cleric', 'druid',
-      'fighter', 'gunslinger', 'inventor', 'investigator', 'kineticist',
-      'magus', 'monk', 'oracle', 'psychic', 'ranger', 'rogue', 'sorcerer',
-      'summoner', 'swashbuckler', 'thaumaturge', 'witch', 'wizard'
-    ];
-    
-    const foundClass = classes.find(cls => 
-      text.toLowerCase().includes(cls.toLowerCase())
-    );
-    if (foundClass) {
-      result.class = foundClass;
-    }
-    
-    // Background detection
-    const backgrounds = [
-      'acolyte', 'acrobat', 'animal whisperer', 'artisan', 'barkeep',
-      'barrister', 'bounty hunter', 'charlatan', 'criminal', 'cultist',
-      'detective', 'diplomat', 'field medic', 'fortune teller', 'gambler',
-      'gladiator', 'guard', 'herbalist', 'hermit', 'hunter', 'laborer',
-      'merchant', 'noble', 'nomad', 'occultist', 'pilot', 'pirate',
-      'prisoner', 'scholar', 'scout', 'sailor', 'soldier', 'street urchin',
-      'tinker', 'warrior'
-    ];
-    
-    const foundBackground = backgrounds.find(bg => 
-      text.toLowerCase().includes(bg.toLowerCase())
-    );
-    if (foundBackground) {
-      result.background = foundBackground;
-    }
-    
-    // Alignment detection
-    const alignments = [
-      'lawful good', 'neutral good', 'chaotic good',
-      'lawful neutral', 'neutral', 'chaotic neutral',
-      'lawful evil', 'neutral evil', 'chaotic evil'
-    ];
-    
-    const foundAlignment = alignments.find(align => 
-      text.toLowerCase().includes(align.toLowerCase())
-    );
-    if (foundAlignment) {
-      result.alignment = foundAlignment.replace(' ', '-');
-    }
-    
-    console.log('Parsed character data:', result);
-    return result;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -322,8 +123,7 @@ export default function NewCharacterPage() {
       // TODO: Implement actual character creation with PDF upload
       const characterData = {
         ...formData,
-        pdfFile: selectedPDF,
-        extractedData: extractedData
+        pdfFile: selectedPDF
       };
       
       console.log('Creating character with PDF:', characterData);
@@ -349,35 +149,11 @@ export default function NewCharacterPage() {
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-4">PDF Karakter Sayfası</h2>
                 <p className="text-sm text-gray-600 mb-4">
-                  Mevcut karakter sayfanızı PDF olarak yükleyin. Sistem otomatik olarak verileri çıkarmaya çalışacak.
+                  Mevcut karakter sayfanızı PDF olarak yükleyin. PDF dosyası kaydedilecek ve görüntülenecektir.
                 </p>
                 <PDFUpload 
                   onFileSelect={handlePDFSelect}
-                  onDataExtracted={handleDataExtracted}
                 />
-                
-                {/* Extracted Data Display */}
-                {extractedData && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 className="text-sm font-medium text-green-800 mb-2">
-                      ✅ PDF'den Veri Çıkarıldı
-                    </h3>
-                    <p className="text-sm text-green-700">
-                      PDF analiz edildi ve form otomatik olarak dolduruldu. 
-                      Gerekirse manuel olarak düzenleyebilirsiniz.
-                    </p>
-                    {extractedData.text && (
-                      <details className="mt-2">
-                        <summary className="text-xs text-green-600 cursor-pointer">
-                          Çıkarılan metni göster
-                        </summary>
-                        <pre className="mt-2 text-xs text-gray-600 bg-white p-2 rounded border max-h-32 overflow-y-auto">
-                          {extractedData.text.substring(0, 500)}...
-                        </pre>
-                      </details>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* Basic Information */}

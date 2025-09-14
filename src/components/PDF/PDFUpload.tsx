@@ -5,10 +5,9 @@ import PDFViewer from './PDFViewer';
 
 interface PDFUploadProps {
   onFileSelect: (file: File | null) => void;
-  onDataExtracted?: (data: any) => void;
 }
 
-export default function PDFUpload({ onFileSelect, onDataExtracted }: PDFUploadProps) {
+export default function PDFUpload({ onFileSelect }: PDFUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,8 +142,8 @@ export default function PDFUpload({ onFileSelect, onDataExtracted }: PDFUploadPr
       {/* PDF Viewer */}
       {selectedFile && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">PDF Önizleme</h3>
-          <PDFViewer file={selectedFile} onDataExtracted={onDataExtracted} />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">PDF Görüntüleyici</h3>
+          <PDFViewer file={selectedFile} />
         </div>
       )}
     </div>
