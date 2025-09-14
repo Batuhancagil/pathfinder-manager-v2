@@ -51,7 +51,7 @@ const CharacterSchema = new Schema<ICharacter>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
+  } as any,
   name: {
     type: String,
     required: true,

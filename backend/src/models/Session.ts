@@ -16,7 +16,7 @@ const SessionSchema = new Schema<ISession>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
+  } as any,
   name: {
     type: String,
     required: true,
@@ -37,7 +37,7 @@ const SessionSchema = new Schema<ISession>({
   players: [{
     type: Schema.Types.ObjectId,
     ref: 'Character'
-  }],
+  } as any],
   status: {
     type: String,
     enum: ['waiting', 'active', 'ended'],
