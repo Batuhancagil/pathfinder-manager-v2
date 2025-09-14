@@ -6,25 +6,18 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
 
-# Install root dependencies
+# Install dependencies
 RUN npm install
 
 # Copy source code
 COPY . .
-COPY frontend/ ./frontend/
-
-# Install all dependencies
-RUN cd backend && npm install
-RUN cd frontend && npm install
 
 # Build the application
 RUN npm run build
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3000
 
 # Start the application
 CMD ["npm", "start"]
