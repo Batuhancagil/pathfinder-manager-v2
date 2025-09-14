@@ -2,6 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const PDFUpload = dynamic(() => import('../../../components/PDF/PDFUpload'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg"></div>
+});
 
 interface CharacterFormData {
   name: string;
@@ -43,6 +49,8 @@ export default function NewCharacterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedPDF, setSelectedPDF] = useState<File | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
 
   const [formData, setFormData] = useState<CharacterFormData>({
     name: '',
@@ -103,14 +111,56 @@ export default function NewCharacterPage() {
     return Math.floor((score - 10) / 2);
   };
 
+  const handlePDFSelect = (file: File | null) => {
+    setSelectedPDF(file);
+  };
+
+  const handleDataExtracted = (data: any) => {
+    setExtractedData(data);
+    console.log('Extracted data from PDF:', data);
+    
+    // PDF'den çıkarılan verileri form'a otomatik doldur
+    // Bu kısım daha gelişmiş parsing ile geliştirilebilir
+    if (data.text) {
+      // Basit keyword matching ile veri çıkarma
+      const text = data.text.toLowerCase();
+      
+      // Race detection
+      const races = ['human', 'elf', 'dwarf', 'halfling', 'gnome', 'half-orc', 'tiefling'];
+      const foundRace = races.find(race => text.includes(race));
+      if (foundRace) {
+        setFormData(prev => ({ ...prev, race: foundRace }));
+      }
+      
+      // Class detection
+      const classes = ['barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk', 'paladin', 'ranger', 'rogue', 'sorcerer', 'warlock', 'wizard'];
+      const foundClass = classes.find(cls => text.includes(cls));
+      if (foundClass) {
+        setFormData(prev => ({ ...prev, class: foundClass }));
+      }
+      
+      // Level detection
+      const levelMatch = text.match(/level\s*(\d+)/i);
+      if (levelMatch) {
+        setFormData(prev => ({ ...prev, level: parseInt(levelMatch[1]) }));
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // TODO: Implement actual character creation
-      console.log('Creating character:', formData);
+      // TODO: Implement actual character creation with PDF upload
+      const characterData = {
+        ...formData,
+        pdfFile: selectedPDF,
+        extractedData: extractedData
+      };
+      
+      console.log('Creating character with PDF:', characterData);
       
       // For now, just redirect to dashboard
       router.push('/dashboard');
@@ -129,6 +179,18 @@ export default function NewCharacterPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Character</h1>
             
             <form onSubmit={handleSubmit} className="space-y-8">
+              {/* PDF Upload */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">PDF Karakter Sayfası</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Mevcut karakter sayfanızı PDF olarak yükleyin. Sistem otomatik olarak verileri çıkarmaya çalışacak.
+                </p>
+                <PDFUpload 
+                  onFileSelect={handlePDFSelect}
+                  onDataExtracted={handleDataExtracted}
+                />
+              </div>
+
               {/* Basic Information */}
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
