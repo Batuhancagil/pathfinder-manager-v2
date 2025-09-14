@@ -17,7 +17,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "https://pathfinder-manager-v2-production.up.railway.app",
     methods: ["GET", "POST"],
     credentials: true
   }
