@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
 
 // Import routes
 import authRoutes from './routes/auth';
@@ -27,6 +28,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from frontend build
+app.use(express.static(path.join(__dirname, '../../frontend/out')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/characters', characterRoutes);
@@ -34,6 +38,11 @@ app.use('/api/characters', characterRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Pathfinder Manager API is running!' });
+});
+
+// Serve frontend for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/out/index.html'));
 });
 
 // Socket.io connection handling
