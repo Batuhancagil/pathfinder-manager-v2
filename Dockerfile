@@ -9,19 +9,21 @@ COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
+# Install root dependencies
 RUN npm install
-RUN cd backend && npm install
-RUN cd frontend && npm install
 
 # Copy source code
 COPY . .
+
+# Install all dependencies
+RUN cd backend && npm install
+RUN cd frontend && npm install
 
 # Build the application
 RUN npm run build
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8080
 
 # Start the application
 CMD ["npm", "start"]
