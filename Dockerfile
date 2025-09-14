@@ -20,7 +20,8 @@ RUN cd backend && npm install
 RUN cd frontend && npm install
 
 # Build the application
-RUN npm run build
+RUN cd backend && npm run build
+RUN cd frontend && npm run build
 
 # Expose port
 EXPOSE 8080
