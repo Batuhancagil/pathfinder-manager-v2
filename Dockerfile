@@ -14,6 +14,7 @@ RUN npm install
 
 # Copy source code
 COPY . .
+COPY frontend/ ./frontend/
 
 # Install all dependencies
 RUN cd backend && npm install
