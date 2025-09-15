@@ -15,6 +15,7 @@ export default function NewCharacterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedPDF, setSelectedPDF] = useState<File | null>(null);
+  const [characterName, setCharacterName] = useState('');
 
 
   const handlePDFSelect = (file: File | null) => {
@@ -22,21 +23,36 @@ export default function NewCharacterPage() {
   };
 
   const handleSubmit = async () => {
+    if (!selectedPDF || !characterName.trim()) {
+      setError('Please select a PDF file and enter a character name.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // TODO: Implement actual character creation with PDF upload
-      const characterData = {
-        pdfFile: selectedPDF
-      };
+      const formData = new FormData();
+      formData.append('pdfFile', selectedPDF);
+      formData.append('characterName', characterName.trim());
+
+      const response = await fetch('/api/characters/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create character');
+      }
+
+      const result = await response.json();
+      console.log('Character created:', result);
       
-      console.log('Creating character with PDF:', characterData);
-      
-      // For now, just redirect to dashboard
+      // Redirect to dashboard
       router.push('/dashboard');
     } catch (err) {
-      setError('Failed to create character. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to create character. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -50,6 +66,21 @@ export default function NewCharacterPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Character</h1>
             <p className="text-sm text-gray-500 mb-4">Version: 2.0 - PDF Only</p>
             
+            {/* Character Name */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Karakter Adı
+              </label>
+              <input
+                type="text"
+                value={characterName}
+                onChange={(e) => setCharacterName(e.target.value)}
+                placeholder="Karakterinizin adını girin"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
+            </div>
+
             {/* PDF Upload */}
             <div>
               <h2 className="text-lg font-medium text-gray-900 mb-4">PDF Karakter Sayfası</h2>
@@ -79,7 +110,7 @@ export default function NewCharacterPage() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={loading || !selectedPDF}
+                disabled={loading || !selectedPDF || !characterName.trim()}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Character'}

@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Character {
-  id: string;
+  _id: string;
   name: string;
-  race: string;
-  class: string;
-  level: number;
+  pdfUrl: string;
+  pdfFileName: string;
+  createdAt: string;
 }
 
 export default function DashboardPage() {
@@ -16,28 +16,22 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Implement actual character fetching
-    // For now, show mock data
-    setTimeout(() => {
-      setCharacters([
-        {
-          id: '1',
-          name: 'Aragorn',
-          race: 'Human',
-          class: 'Ranger',
-          level: 5
-        },
-        {
-          id: '2',
-          name: 'Gandalf',
-          race: 'Wizard',
-          class: 'Mage',
-          level: 10
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchCharacters();
   }, []);
+
+  const fetchCharacters = async () => {
+    try {
+      const response = await fetch('/api/characters');
+      if (response.ok) {
+        const data = await response.json();
+        setCharacters(data.characters || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch characters:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,28 +83,39 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {characters.map((character) => (
                     <div
-                      key={character.id}
+                      key={character._id}
                       className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                     >
-                      <h4 className="text-lg font-medium text-gray-900">
-                        {character.name}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {character.race} {character.class} (Level {character.level})
-                      </p>
-                      <div className="mt-4 flex space-x-2">
-                        <Link
-                          href={`/characters/${character.id}`}
-                          className="text-indigo-600 hover:text-indigo-500 text-sm"
-                        >
-                          View
-                        </Link>
-                        <Link
-                          href={`/characters/${character.id}/edit`}
-                          className="text-gray-600 hover:text-gray-500 text-sm"
-                        >
-                          Edit
-                        </Link>
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <svg className="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-medium text-gray-900">
+                            {character.name}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Created {new Date(character.createdAt).toLocaleDateString()}
+                          </p>
+                          <div className="mt-4 flex space-x-2">
+                            <a
+                              href={character.pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 hover:text-indigo-500 text-sm"
+                            >
+                              View PDF
+                            </a>
+                            <Link
+                              href={`/characters/${character._id}`}
+                              className="text-gray-600 hover:text-gray-500 text-sm"
+                            >
+                              Details
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
