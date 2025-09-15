@@ -48,6 +48,7 @@ export default function NewCharacterPage() {
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Character</h1>
+            <p className="text-sm text-gray-500 mb-4">Version: 2.0 - PDF Only</p>
             
             {/* PDF Upload */}
             <div>
