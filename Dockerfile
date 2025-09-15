@@ -4,18 +4,20 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with production optimizations
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy source code
 COPY . .
-COPY src/ ./src/
 
 # Build the application
 RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
 
 # Expose port
 EXPOSE 3000
