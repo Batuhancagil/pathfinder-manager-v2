@@ -41,17 +41,27 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Connect to database
-    await connectDB();
+    try {
+      await connectDB();
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 });
+    }
 
     // Save character to database
-    const character = new (Character as any)({
-      name: characterName,
-      pdfUrl: `/api/files/${fileName}`,
-      pdfFileName: fileName,
-      userId: 'temp-user-id' // TODO: Get from auth
-    });
+    try {
+      const character = new (Character as any)({
+        name: characterName,
+        pdfUrl: `/api/files/${fileName}`,
+        pdfFileName: fileName,
+        userId: 'temp-user-id' // TODO: Get from auth
+      });
 
-    await character.save();
+      await character.save();
+    } catch (dbError) {
+      console.error('Database save error:', dbError);
+      return NextResponse.json({ error: 'Failed to save character to database' }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,

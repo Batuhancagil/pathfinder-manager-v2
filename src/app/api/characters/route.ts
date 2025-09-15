@@ -13,6 +13,9 @@ export async function GET() {
     return NextResponse.json({ characters });
   } catch (error) {
     console.error('Characters fetch error:', error);
-    return NextResponse.json({ error: 'Failed to fetch characters' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch characters', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
