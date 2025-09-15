@@ -49,8 +49,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Save character to database
+    let character;
     try {
-      const character = new (Character as any)({
+      character = new (Character as any)({
         name: characterName,
         pdfUrl: `/api/files/${fileName}`,
         pdfFileName: fileName,

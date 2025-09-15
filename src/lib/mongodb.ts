@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || process.env.RAILWAY_MONGODB_URL || 'mongodb://mongo:27017/pathfinder-manager';
+const MONGODB_URI = process.env.MONGO_URL || process.env.MONGODB_URI || process.env.RAILWAY_MONGODB_URL || 'mongodb://localhost:27017/pathfinder-manager';
 
 let cached = (global as any).mongoose;
 
@@ -14,11 +14,14 @@ async function connectDB() {
   }
 
   if (!cached.promise) {
+    console.log('Connecting to MongoDB:', MONGODB_URI.replace(/\/\/.*@/, '//***:***@')); // Hide credentials in logs
+    
     const opts = {
       bufferCommands: false,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('MongoDB connected successfully');
       return mongoose;
     });
   }
