@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useAuth } from '../../../../hooks/useAuth';
+import { useSessionEvents } from '../../../../hooks/useSessionEvents';
 import { ChatMessage } from '../../../../components/Chat/ChatInterface';
 
 const ChatInterface = dynamic(() => import('../../../../components/Chat/ChatInterface'), {
@@ -51,6 +52,28 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   // Active tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
 
+  // Real-time session events
+  const { connected, sendMessage } = useSessionEvents({
+    sessionId,
+    onSessionUpdate: (updatedSession) => {
+      console.log('Session updated:', updatedSession);
+      setSession(updatedSession);
+    },
+    onNewMessage: (message) => {
+      console.log('New message received:', message);
+      setSession(prev => prev ? {
+        ...prev,
+        chatMessages: [...prev.chatMessages, message]
+      } : null);
+    },
+    onParticipantChange: () => {
+      console.log('Participant list changed, refetching session');
+      if (sessionId) {
+        fetchSession(sessionId);
+      }
+    }
+  });
+
   useEffect(() => {
     if (authLoading) return;
     
@@ -84,52 +107,25 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   };
 
   const handleSendMessage = async (message: string) => {
-    if (!session) return;
+    if (!session || !sendMessage) return;
 
-    const newMessage: ChatMessage = {
-      id: `msg_${Date.now()}`,
-      userId: user!.id,
-      username: user!.name,
-      message: message,
-      timestamp: new Date().toISOString(),
-      type: 'chat'
-    };
-
-    // Update local state immediately
-    setSession(prev => prev ? {
-      ...prev,
-      chatMessages: [...prev.chatMessages, newMessage]
-    } : null);
-
-    // TODO: Send to backend/Socket.io
     try {
-      // await sendMessageToServer(sessionId, newMessage);
-      console.log('Message sent:', newMessage);
+      await sendMessage(message, 'chat');
     } catch (error) {
       console.error('Failed to send message:', error);
+      setError('Failed to send message');
     }
   };
 
-  const handleSendRoll = (rollResult: string) => {
-    if (!session) return;
+  const handleSendRoll = async (rollResult: string) => {
+    if (!session || !sendMessage) return;
 
-    const rollMessage: ChatMessage = {
-      id: `roll_${Date.now()}`,
-      userId: user!.id,
-      username: user!.name,
-      message: rollResult,
-      timestamp: new Date().toISOString(),
-      type: 'roll'
-    };
-
-    // Update local state immediately
-    setSession(prev => prev ? {
-      ...prev,
-      chatMessages: [...prev.chatMessages, rollMessage]
-    } : null);
-
-    // TODO: Send to backend/Socket.io
-    console.log('Roll sent:', rollMessage);
+    try {
+      await sendMessage(rollResult, 'roll');
+    } catch (error) {
+      console.error('Failed to send roll:', error);
+      setError('Failed to send roll');
+    }
   };
 
   const handleDiceRoll = (roll: any) => {
@@ -206,7 +202,12 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               <div className="text-sm text-gray-600">
                 {session.players.filter(p => p.isOnline).length}/{session.players.length} online
               </div>
-              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                <span className="text-xs text-gray-500">
+                  {connected ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -95,6 +95,24 @@ export async function POST(request: NextRequest) {
 
     await session.save();
 
+    // Broadcast to all connected clients in this session
+    try {
+      const { broadcastToSession } = await import('../../../../lib/sessionBroadcast');
+      broadcastToSession(session._id.toString(), {
+        type: 'session_update',
+        session: {
+          id: session._id,
+          title: session.title,
+          players: session.players,
+          chatMessages: session.chatMessages.slice(-50),
+          isActive: session.isActive
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.warn('Failed to broadcast session update:', error);
+    }
+
     return NextResponse.json({
       success: true,
       session: {
