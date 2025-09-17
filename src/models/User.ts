@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 export interface IUser extends Document {
   email: string;
   password: string;
+  name: string;
   role: 'admin' | 'player';
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +23,11 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: true,
     minlength: 6
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
   },
   role: {
     type: String,
@@ -50,4 +56,4 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.model<IUser>('User', UserSchema);
+export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
