@@ -13,6 +13,10 @@ const DiceRoller = dynamic(() => import('../../../../components/Dice/DiceRoller'
   ssr: false
 });
 
+const VoiceChat = dynamic(() => import('../../../../components/Voice/VoiceChat'), {
+  ssr: false
+});
+
 interface Player {
   userId: string;
   characterId?: string;
@@ -43,7 +47,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   const [sessionId, setSessionId] = useState<string>('');
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'initiative' | 'notes'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
 
   // Current user (TODO: Get from auth)
   const currentUser = {
@@ -165,6 +169,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   const tabs = [
     { id: 'chat', name: '💬 Chat', icon: '💬' },
     { id: 'dice', name: '🎲 Dice', icon: '🎲' },
+    { id: 'voice', name: '🎤 Voice', icon: '🎤' },
     { id: 'initiative', name: '⚔️ Initiative', icon: '⚔️' },
     { id: 'notes', name: '📝 Notes', icon: '📝' }
   ];
@@ -245,6 +250,17 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   </div>
                 )}
 
+                {activeTab === 'voice' && (
+                  <div className="max-w-md mx-auto">
+                    <VoiceChat
+                      sessionId={sessionId}
+                      userId={currentUser.id}
+                      userName={currentUser.name}
+                      onError={(error) => setError(error)}
+                    />
+                  </div>
+                )}
+
                 {activeTab === 'initiative' && (
                   <div className="text-center py-12">
                     <h3 className="text-lg font-medium text-gray-900 mb-2">⚔️ Initiative Tracker</h3>
@@ -314,6 +330,12 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 <h3 className="text-lg font-medium text-gray-900">⚡ Quick Actions</h3>
               </div>
               <div className="p-4 space-y-2">
+                <button 
+                  onClick={() => setActiveTab('voice')}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                >
+                  🎤 Join Voice Chat
+                </button>
                 <button 
                   onClick={() => setActiveTab('dice')}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
