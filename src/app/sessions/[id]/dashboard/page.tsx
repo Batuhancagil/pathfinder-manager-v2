@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useAuth } from '../../../../hooks/useAuth';
 import { ChatMessage } from '../../../../components/Chat/ChatInterface';
 
 const ChatInterface = dynamic(() => import('../../../../components/Chat/ChatInterface'), {
@@ -41,6 +42,7 @@ interface Session {
 
 export default function SessionDashboard({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,20 +51,21 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   // Active tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
 
-  // Current user (TODO: Get from auth)
-  const currentUser = {
-    id: 'temp-user-id',
-    name: 'Demo Player'
-  };
-
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
     const getParams = async () => {
       const resolvedParams = await params;
       setSessionId(resolvedParams.id);
       fetchSession(resolvedParams.id);
     };
     getParams();
-  }, [params]);
+  }, [params, user, authLoading, router]);
 
   const fetchSession = async (id: string) => {
     try {
@@ -85,8 +88,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
 
     const newMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
-      userId: currentUser.id,
-      username: currentUser.name,
+      userId: user!.id,
+      username: user!.name,
       message: message,
       timestamp: new Date().toISOString(),
       type: 'chat'
@@ -112,8 +115,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
 
     const rollMessage: ChatMessage = {
       id: `roll_${Date.now()}`,
-      userId: currentUser.id,
-      username: currentUser.name,
+      userId: user!.id,
+      username: user!.name,
       message: rollResult,
       timestamp: new Date().toISOString(),
       type: 'roll'
@@ -134,7 +137,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     handleSendRoll(rollText);
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -143,6 +146,10 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
         </div>
       </div>
     );
+  }
+
+  if (!user) {
+    return null; // Will redirect to login
   }
 
   if (error || !session) {
@@ -239,7 +246,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                       messages={session.chatMessages || []}
                       onSendMessage={handleSendMessage}
                       onSendRoll={handleSendRoll}
-                      currentUserId={currentUser.id}
+                      currentUserId={user!.id}
                     />
                   </div>
                 )}
@@ -254,8 +261,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   <div className="max-w-md mx-auto">
                     <VoiceChat
                       sessionId={sessionId}
-                      userId={currentUser.id}
-                      userName={currentUser.name}
+                      userId={user!.id}
+                      userName={user!.name}
                       onError={(error) => setError(error)}
                     />
                   </div>

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Session {
   _id: string;
@@ -16,6 +18,8 @@ interface Session {
 }
 
 export default function SessionsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -39,8 +43,15 @@ export default function SessionsPage() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
     fetchSessions();
-  }, []);
+  }, [user, authLoading, router]);
 
   const fetchSessions = async () => {
     try {
@@ -67,11 +78,8 @@ export default function SessionsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...createForm,
-          dmId: 'temp-user-id', // TODO: Get from auth
-          dmName: 'Demo DM' // TODO: Get from auth
-        }),
+        body: JSON.stringify(createForm),
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -102,10 +110,9 @@ export default function SessionsPage() {
         },
         body: JSON.stringify({
           sessionKey: joinForm.sessionKey,
-          userId: 'temp-user-id', // TODO: Get from auth
-          username: 'Demo Player', // TODO: Get from auth
           characterName: joinForm.characterName
         }),
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -126,6 +133,21 @@ export default function SessionsPage() {
       setError('Failed to join session');
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to login
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import connectDB from '../../../lib/mongodb';
 import Session from '../../../models/Session';
+import User from '../../../models/User';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Generate random session key
 function generateSessionKey(): string {
@@ -17,13 +21,40 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
+    // Get and verify JWT token
+    const token = request.cookies.get('auth-token')?.value || 
+                  request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    if (!token) {
+      return NextResponse.json({
+        error: 'Authentication required'
+      }, { status: 401 });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET) as any;
+    } catch (error) {
+      return NextResponse.json({
+        error: 'Invalid or expired token'
+      }, { status: 401 });
+    }
+
+    // Get user from database
+    const user = await (User as any).findById(decoded.userId);
+    if (!user) {
+      return NextResponse.json({
+        error: 'User not found'
+      }, { status: 404 });
+    }
+
     const body = await request.json();
-    const { title, description, maxPlayers, isPublic, dmId, dmName } = body;
+    const { title, description, maxPlayers, isPublic } = body;
 
     // Validate required fields
-    if (!title || !dmId || !dmName) {
+    if (!title) {
       return NextResponse.json({
-        error: 'Title, DM ID, and DM name are required'
+        error: 'Title is required'
       }, { status: 400 });
     }
 
@@ -54,8 +85,8 @@ export async function POST(request: NextRequest) {
       title,
       description: description || '',
       sessionKey,
-      dmId,
-      dmName,
+      dmId: user._id.toString(),
+      dmName: user.name,
       maxPlayers: maxPlayers || 6,
       isPublic: isPublic || false,
       players: [],
