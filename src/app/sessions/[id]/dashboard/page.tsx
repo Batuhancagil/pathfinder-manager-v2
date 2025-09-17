@@ -86,6 +86,23 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     const getParams = async () => {
       const resolvedParams = await params;
       setSessionId(resolvedParams.id);
+      
+      // First try to auto-join the session
+      try {
+        const autoJoinResponse = await fetch(`/api/sessions/${resolvedParams.id}/auto-join`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (autoJoinResponse.ok) {
+          const autoJoinData = await autoJoinResponse.json();
+          console.log('Auto-join result:', autoJoinData);
+        }
+      } catch (error) {
+        console.warn('Auto-join failed:', error);
+      }
+      
+      // Then fetch session data
       fetchSession(resolvedParams.id);
     };
     getParams();
