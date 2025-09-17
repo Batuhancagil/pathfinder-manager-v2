@@ -52,11 +52,12 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   // Active tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
 
-  // Real-time session events
+  // Real-time session events (only when sessionId is available)
   const { connected, sendMessage } = useSessionEvents({
-    sessionId,
+    sessionId: sessionId || '',
     onSessionUpdate: (updatedSession) => {
       console.log('Session updated:', updatedSession);
+      console.log('Players in updated session:', updatedSession.players);
       setSession(updatedSession);
     },
     onNewMessage: (message) => {
@@ -95,6 +96,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       const response = await fetch(`/api/sessions/${id}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Fetched session data:', data.session);
+        console.log('Players in session:', data.session.players);
         setSession(data.session);
       } else {
         setError('Session not found');
@@ -200,12 +203,15 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                {session.players.filter(p => p.isOnline).length}/{session.players.length} online
+                {session.players.filter(p => p.isOnline).length + 1}/{session.players.length + 1} online
+                <span className="text-xs text-gray-400 ml-1">
+                  (DM + {session.players.length} players)
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></div>
                 <span className="text-xs text-gray-500">
-                  {connected ? 'Connected' : 'Disconnected'}
+                  {connected ? 'Real-time Connected' : 'Disconnected'}
                 </span>
               </div>
             </div>
@@ -293,7 +299,10 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
             {/* Players List */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-3 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">👥 Players</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  👥 Participants ({session.players.length + 1})
+                </h3>
+                <p className="text-xs text-gray-500">DM + {session.players.length} players</p>
               </div>
               <div className="p-4">
                 <div className="space-y-3">
@@ -310,14 +319,14 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   
                   {/* Players */}
                   {session.players.map((player, index) => (
-                    <div key={index} className="flex items-center space-x-3">
+                    <div key={player.userId || index} className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${player.isOnline ? 'bg-green-400' : 'bg-gray-300'}`}></div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900">
                           {player.characterName || `Player ${index + 1}`}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {player.isOnline ? 'Online' : 'Offline'}
+                          {player.isOnline ? 'Online' : 'Offline'} • User ID: {player.userId?.slice(-4)}
                         </p>
                       </div>
                     </div>

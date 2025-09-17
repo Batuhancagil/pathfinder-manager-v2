@@ -39,6 +39,11 @@ export function useSessionEvents({
   const maxReconnectAttempts = 5;
 
   const connect = () => {
+    if (!sessionId) {
+      console.log('No sessionId provided, skipping connection');
+      return;
+    }
+    
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }

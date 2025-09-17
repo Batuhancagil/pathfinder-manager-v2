@@ -66,14 +66,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log('Current players before join:', session.players.length);
+    console.log('User trying to join:', user.name, user._id.toString());
+
     // Check if user is already in session
     const existingPlayer = session.players.find((player: any) => player.userId === user._id.toString());
     if (existingPlayer) {
+      console.log('User already in session, updating info');
       // Update existing player info
       existingPlayer.characterName = characterName;
       existingPlayer.isOnline = true;
       existingPlayer.joinedAt = new Date();
     } else {
+      console.log('Adding new player to session');
       // Add new player
       session.players.push({
         userId: user._id.toString(),
@@ -92,6 +97,8 @@ export async function POST(request: NextRequest) {
         type: 'system'
       });
     }
+
+    console.log('Players after join:', session.players.length);
 
     await session.save();
 
