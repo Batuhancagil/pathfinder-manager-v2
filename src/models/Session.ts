@@ -1,50 +1,161 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IPlayer {
+  userId: string;
+  characterId?: string;
+  characterName?: string;
+  joinedAt: Date;
+  isOnline: boolean;
+}
+
+export interface IChatMessage {
+  id: string;
+  userId: string;
+  username: string;
+  message: string;
+  timestamp: Date;
+  type: 'chat' | 'roll' | 'system';
+}
+
+export interface IInitiativeEntry {
+  characterId: string;
+  characterName: string;
+  initiative: number;
+  isActive: boolean;
+}
+
 export interface ISession extends Document {
+  title: string;
+  description?: string;
+  sessionKey: string;
   dmId: string;
-  name: string;
-  description: string;
+  dmName: string;
+  players: IPlayer[];
   maxPlayers: number;
-  players: string[]; // Character IDs
-  status: 'waiting' | 'active' | 'ended';
+  isActive: boolean;
+  isPublic: boolean;
+  chatMessages: IChatMessage[];
+  initiativeOrder: IInitiativeEntry[];
+  currentTurn?: string; // characterId of current turn
   createdAt: Date;
   updatedAt: Date;
 }
 
-const SessionSchema = new Schema<ISession>({
-  dmId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+const PlayerSchema = new Schema<IPlayer>({
+  userId: {
+    type: String,
     required: true
-  } as any,
-  name: {
+  },
+  characterId: {
+    type: String
+  },
+  characterName: {
+    type: String
+  },
+  joinedAt: {
+    type: Date,
+    default: Date.now
+  },
+  isOnline: {
+    type: Boolean,
+    default: true
+  }
+});
+
+const ChatMessageSchema = new Schema<IChatMessage>({
+  id: {
+    type: String,
+    required: true
+  },
+  userId: {
+    type: String,
+    required: true
+  },
+  username: {
+    type: String,
+    required: true
+  },
+  message: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  },
+  type: {
+    type: String,
+    enum: ['chat', 'roll', 'system'],
+    default: 'chat'
+  }
+});
+
+const InitiativeEntrySchema = new Schema<IInitiativeEntry>({
+  characterId: {
+    type: String,
+    required: true
+  },
+  characterName: {
+    type: String,
+    required: true
+  },
+  initiative: {
+    type: Number,
+    required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+});
+
+const SessionSchema = new Schema<ISession>({
+  title: {
     type: String,
     required: true,
     trim: true
   },
   description: {
     type: String,
-    trim: true,
-    default: ''
+    trim: true
   },
+  sessionKey: {
+    type: String,
+    required: true,
+    unique: true,
+    uppercase: true
+  },
+  dmId: {
+    type: String,
+    required: true
+  },
+  dmName: {
+    type: String,
+    required: true
+  },
+  players: [PlayerSchema],
   maxPlayers: {
     type: Number,
-    required: true,
-    min: 1,
-    max: 8,
-    default: 8
+    default: 6
   },
-  players: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Character'
-  } as any],
-  status: {
-    type: String,
-    enum: ['waiting', 'active', 'ended'],
-    default: 'waiting'
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
+  chatMessages: [ChatMessageSchema],
+  initiativeOrder: [InitiativeEntrySchema],
+  currentTurn: {
+    type: String
   }
 }, {
   timestamps: true
 });
 
-export default mongoose.model<ISession>('Session', SessionSchema);
+// Index for faster session key lookups
+SessionSchema.index({ sessionKey: 1 });
+
+export default mongoose.models.Session || mongoose.model<ISession>('Session', SessionSchema);
