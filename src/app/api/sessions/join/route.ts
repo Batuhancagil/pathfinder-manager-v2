@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
         players: session.players,
         maxPlayers: session.maxPlayers,
         isActive: session.isActive
-      }
+      },
+      redirectTo: `/sessions/${session._id}/dashboard`
     });
 
   } catch (error) {

@@ -113,6 +113,11 @@ export default function SessionsPage() {
         setSuccess(`Successfully joined session: ${data.session.title}`);
         setJoinForm({ sessionKey: '', characterName: '' });
         setShowJoinForm(false);
+        
+        // Redirect to session dashboard
+        if (data.redirectTo) {
+          window.location.href = data.redirectTo;
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to join session');

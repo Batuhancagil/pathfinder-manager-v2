@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Player {
   userId: string;
@@ -160,12 +161,20 @@ export default function SessionDetailPage({ params }: { params: Promise<{ id: st
                 <span>{session.players.length}/{session.maxPlayers} players</span>
                 <span>Created {new Date(session.createdAt).toLocaleDateString()}</span>
               </div>
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Back
-              </button>
+              <div className="flex space-x-3">
+                <Link
+                  href={`/sessions/${sessionId}/dashboard`}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  Join Session
+                </Link>
+                <button
+                  onClick={() => router.back()}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Back
+                </button>
+              </div>
             </div>
           </div>
         </div>
