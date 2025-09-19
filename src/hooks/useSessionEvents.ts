@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../components/Chat/ChatInterface';
 
 interface SessionEvent {
-  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left';
+  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'webrtc_signal';
   sessionId?: string;
   userId?: string;
   message?: ChatMessage;
@@ -15,6 +15,10 @@ interface SessionEvent {
     chatMessages: ChatMessage[];
     isActive: boolean;
   };
+  signalType?: string;
+  data?: any;
+  fromUserId?: string;
+  targetUserId?: string;
   timestamp: string;
 }
 
@@ -23,13 +27,15 @@ interface UseSessionEventsProps {
   onSessionUpdate?: (session: any) => void;
   onNewMessage?: (message: ChatMessage) => void;
   onParticipantChange?: () => void;
+  onWebRTCSignal?: (signal: any) => void;
 }
 
 export function useSessionEvents({ 
   sessionId, 
   onSessionUpdate, 
   onNewMessage, 
-  onParticipantChange 
+  onParticipantChange,
+  onWebRTCSignal
 }: UseSessionEventsProps) {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +93,12 @@ export function useSessionEvents({
           case 'participant_left':
             if (onParticipantChange) {
               onParticipantChange();
+            }
+            break;
+
+          case 'webrtc_signal':
+            if (onWebRTCSignal) {
+              onWebRTCSignal(data);
             }
             break;
         }

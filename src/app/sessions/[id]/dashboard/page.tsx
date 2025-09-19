@@ -19,6 +19,10 @@ const VoiceChat = dynamic(() => import('../../../../components/Voice/VoiceChat')
   ssr: false
 });
 
+const WebRTCVoiceChat = dynamic(() => import('../../../../components/Voice/WebRTCVoiceChat'), {
+  ssr: false
+});
+
 interface Player {
   userId: string;
   characterId?: string;
@@ -52,6 +56,14 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   // Active tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
 
+  // Handle WebRTC signals from session events
+  const handleWebRTCSignal = (signal: any) => {
+    console.log('Received WebRTC signal in dashboard:', signal);
+    if ((window as any).handleWebRTCSignal) {
+      (window as any).handleWebRTCSignal(signal);
+    }
+  };
+
   // Real-time session events (only when sessionId is available)
   const { connected, sendMessage } = useSessionEvents({
     sessionId: sessionId || '',
@@ -72,7 +84,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       if (sessionId) {
         fetchSession(sessionId);
       }
-    }
+    },
+    onWebRTCSignal: handleWebRTCSignal
   });
 
   useEffect(() => {
@@ -283,10 +296,11 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
 
                 {activeTab === 'voice' && (
                   <div className="max-w-md mx-auto">
-                    <VoiceChat
+                    <WebRTCVoiceChat
                       sessionId={sessionId}
                       userId={user!.id}
                       userName={user!.name}
+                      onSignal={handleWebRTCSignal}
                       onError={(error) => setError(error)}
                     />
                   </div>
