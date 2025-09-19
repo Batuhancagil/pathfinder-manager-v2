@@ -28,8 +28,10 @@ export interface ISession extends Document {
   title: string;
   description?: string;
   sessionKey: string;
-  dmId: string;
-  dmName: string;
+  creatorId: string; // Session oluşturan kişi (admin)
+  creatorName: string;
+  dmId?: string; // DM atanmış mı?
+  dmName?: string;
   players: IPlayer[];
   maxPlayers: number;
   isActive: boolean;
@@ -125,13 +127,19 @@ const SessionSchema = new Schema<ISession>({
     unique: true,
     uppercase: true
   },
-  dmId: {
+  creatorId: {
     type: String,
     required: true
   },
-  dmName: {
+  creatorName: {
     type: String,
     required: true
+  },
+  dmId: {
+    type: String
+  },
+  dmName: {
+    type: String
   },
   players: [PlayerSchema],
   maxPlayers: {

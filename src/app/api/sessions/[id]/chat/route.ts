@@ -58,10 +58,10 @@ export async function POST(
       }, { status: 404 });
     }
 
-    // Check if user is in session
+    // Check if user is in session (player, DM, or creator)
     const isParticipant = session.players.some((player: any) => 
       player.userId === user._id.toString()
-    ) || session.dmId === user._id.toString();
+    ) || session.dmId === user._id.toString() || session.creatorId === user._id.toString();
 
     if (!isParticipant) {
       return NextResponse.json({

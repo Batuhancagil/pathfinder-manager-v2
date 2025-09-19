@@ -36,8 +36,10 @@ interface Session {
   title: string;
   description: string;
   sessionKey: string;
-  dmId: string;
-  dmName: string;
+  creatorId: string;
+  creatorName: string;
+  dmId?: string;
+  dmName?: string;
   players: Player[];
   maxPlayers: number;
   isActive: boolean;
@@ -55,6 +57,11 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   
   // Active tab state
   const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
+  
+  // DM assignment state
+  const [showDMAssignment, setShowDMAssignment] = useState(false);
+  const [selectedDMUserId, setSelectedDMUserId] = useState('');
+  const [dmCharacterName, setDMCharacterName] = useState('');
 
   // Handle WebRTC signals from session events
   const handleWebRTCSignal = (signal: any) => {
@@ -166,6 +173,36 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     handleSendRoll(rollText);
   };
 
+  const handleAssignDM = async () => {
+    if (!selectedDMUserId || !session) return;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/assign-dm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dmUserId: selectedDMUserId,
+          dmCharacterName: dmCharacterName
+        }),
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        setShowDMAssignment(false);
+        setSelectedDMUserId('');
+        setDMCharacterName('');
+        // Session will be updated via real-time events
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to assign DM');
+      }
+    } catch (err) {
+      setError('Failed to assign DM');
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -227,7 +264,11 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-                <p className="text-sm text-gray-600">DM: {session.dmName} • Key: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{session.sessionKey}</span></p>
+                <p className="text-sm text-gray-600">
+                  Creator: {session.creatorName} • 
+                  DM: {session.dmName || 'Not assigned'} • 
+                  Key: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{session.sessionKey}</span>
+                </p>
               </div>
             </div>
             
@@ -339,16 +380,31 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               </div>
               <div className="p-4">
                 <div className="space-y-3">
-                  {/* DM */}
+                  {/* Creator */}
                   <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
-                    <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                    <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
-                        👑 {session.dmName}
+                        ⚙️ {session.creatorName}
+                        {user?.id === session.creatorId && ' (You)'}
                       </p>
-                      <p className="text-xs text-gray-500">Dungeon Master</p>
+                      <p className="text-xs text-gray-500">Session Creator</p>
                     </div>
                   </div>
+
+                  {/* DM */}
+                  {session.dmName && (
+                    <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
+                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          👑 {session.dmName}
+                          {user?.id === session.dmId && ' (You)'}
+                        </p>
+                        <p className="text-xs text-gray-500">Dungeon Master</p>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Players */}
                   {session.players
@@ -382,6 +438,16 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 <h3 className="text-lg font-medium text-gray-900">⚡ Quick Actions</h3>
               </div>
               <div className="p-4 space-y-2">
+                {/* Creator Actions */}
+                {user?.id === session.creatorId && (
+                  <button 
+                    onClick={() => setShowDMAssignment(!showDMAssignment)}
+                    className="w-full text-left px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-50 rounded border border-indigo-200"
+                  >
+                    ⚙️ {session.dmName ? 'Change DM' : 'Assign DM'}
+                  </button>
+                )}
+                
                 <button 
                   onClick={() => setActiveTab('voice')}
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
@@ -433,6 +499,75 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      {/* DM Assignment Modal */}
+      {showDMAssignment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {session.dmName ? 'Change Dungeon Master' : 'Assign Dungeon Master'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Player to be DM:
+                </label>
+                <select
+                  value={selectedDMUserId}
+                  onChange={(e) => setSelectedDMUserId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Select a participant...</option>
+                  {/* Creator can be DM */}
+                  <option value={session.creatorId}>
+                    {session.creatorName} (Creator)
+                  </option>
+                  {/* Other players */}
+                  {session.players.map((player) => (
+                    <option key={player.userId} value={player.userId}>
+                      {player.characterName || `Player ${player.userId.slice(-4)}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  DM Character Name (Optional):
+                </label>
+                <input
+                  type="text"
+                  value={dmCharacterName}
+                  onChange={(e) => setDMCharacterName(e.target.value)}
+                  placeholder="Enter DM character name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDMAssignment(false);
+                  setSelectedDMUserId('');
+                  setDMCharacterName('');
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignDM}
+                disabled={!selectedDMUserId}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {session.dmName ? 'Change DM' : 'Assign DM'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -51,27 +51,20 @@ export async function POST(
 
     console.log('Auto-join check for user:', user.name, 'in session:', session.title);
     console.log('Current players:', session.players.length);
+    console.log('Session creator:', session.creatorName, 'DM:', session.dmName || 'Not assigned');
 
-    // Check if user is DM
-    if (session.dmId === user._id.toString()) {
-      console.log('User is DM, no need to join as player');
-      
-      // Remove DM from players array if accidentally added
-      session.players = session.players.filter((player: any) => player.userId !== user._id.toString());
-      await session.save();
-      
-      return NextResponse.json({
-        success: true,
-        isParticipant: true,
-        role: 'dm',
-        session: {
-          id: session._id,
-          title: session.title,
-          players: session.players,
-          dmId: session.dmId,
-          dmName: session.dmName
-        }
-      });
+    // Check if user is session creator
+    const isCreator = session.creatorId === user._id.toString();
+    
+    // Check if user is assigned DM
+    const isDM = session.dmId === user._id.toString();
+
+    if (isCreator) {
+      console.log('User is session creator');
+    }
+    
+    if (isDM) {
+      console.log('User is assigned DM');
     }
 
     // Check if user is already a player
@@ -84,18 +77,20 @@ export async function POST(
       return NextResponse.json({
         success: true,
         isParticipant: true,
-        role: 'player',
+        role: isDM ? 'dm' : isCreator ? 'creator' : 'player',
         session: {
           id: session._id,
           title: session.title,
           players: session.players,
+          creatorId: session.creatorId,
+          creatorName: session.creatorName,
           dmId: session.dmId,
           dmName: session.dmName
         }
       });
     }
 
-    // Auto-join user as player
+    // Auto-join user as player (unless they're creator and don't want to be a player)
     console.log('Auto-joining user as player');
     session.players.push({
       userId: user._id.toString(),
@@ -109,7 +104,7 @@ export async function POST(
       id: `msg_${Date.now()}`,
       userId: 'system',
       username: 'System',
-      message: `${user.name} joined the session`,
+      message: `${user.name} joined the session${isCreator ? ' (Session Creator)' : ''}`,
       timestamp: new Date(),
       type: 'system'
     });
@@ -139,11 +134,13 @@ export async function POST(
     return NextResponse.json({
       success: true,
       isParticipant: true,
-      role: 'player',
+      role: isDM ? 'dm' : isCreator ? 'creator' : 'player',
       session: {
         id: session._id,
         title: session.title,
         players: session.players,
+        creatorId: session.creatorId,
+        creatorName: session.creatorName,
         dmId: session.dmId,
         dmName: session.dmName
       }
