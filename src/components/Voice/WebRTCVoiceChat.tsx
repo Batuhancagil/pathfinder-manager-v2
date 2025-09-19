@@ -7,6 +7,8 @@ interface WebRTCVoiceChatProps {
   sessionId: string;
   userId: string;
   userName: string;
+  characterName?: string;
+  sessionPlayers?: any[];
   onSignal?: (signal: any) => void;
   onError?: (error: string) => void;
 }
@@ -14,7 +16,9 @@ interface WebRTCVoiceChatProps {
 export default function WebRTCVoiceChat({ 
   sessionId, 
   userId, 
-  userName, 
+  userName,
+  characterName,
+  sessionPlayers = [],
   onSignal,
   onError 
 }: WebRTCVoiceChatProps) {
@@ -203,7 +207,7 @@ export default function WebRTCVoiceChat({
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
-                    {userName} (You)
+                    {characterName || userName} (You)
                   </p>
                   <p className="text-xs text-gray-500">
                     {isMuted ? 'Muted' : 'Unmuted'}
@@ -212,23 +216,29 @@ export default function WebRTCVoiceChat({
               </div>
 
               {/* Remote peers */}
-              {peers.map((peer) => (
-                <div key={peer.userId} className="flex items-center space-x-3 p-2 bg-green-50 rounded-md">
-                  <div className="flex-shrink-0">
-                    <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                    </svg>
+              {peers.map((peer) => {
+                // Find character name for this peer
+                const player = sessionPlayers.find(p => p.userId === peer.userId);
+                const displayName = player?.characterName || `Player ${peer.userId.slice(-4)}`;
+                
+                return (
+                  <div key={peer.userId} className="flex items-center space-x-3 p-2 bg-green-50 rounded-md">
+                    <div className="flex-shrink-0">
+                      <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {displayName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {peer.connection.connectionState}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      Participant {peer.userId.slice(-4)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {peer.connection.connectionState}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

@@ -233,9 +233,9 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                {session.players.filter(p => p.isOnline).length + 1}/{session.players.length + 1} online
+                {session.players.filter(p => p.isOnline && p.userId !== session.dmId).length + 1}/{session.players.filter(p => p.userId !== session.dmId).length + 1} online
                 <span className="text-xs text-gray-400 ml-1">
-                  (DM + {session.players.length} players)
+                  (DM + {session.players.filter(p => p.userId !== session.dmId).length} players)
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -300,6 +300,8 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                       sessionId={sessionId}
                       userId={user!.id}
                       userName={user!.name}
+                      characterName={session?.players.find(p => p.userId === user!.id)?.characterName}
+                      sessionPlayers={session?.players || []}
                       onSignal={handleWebRTCSignal}
                       onError={(error) => setError(error)}
                     />
@@ -331,9 +333,9 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-3 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">
-                  👥 Participants ({session.players.length + 1})
+                  👥 Participants ({session.players.filter(p => p.userId !== session.dmId).length + 1})
                 </h3>
-                <p className="text-xs text-gray-500">DM + {session.players.length} players</p>
+                <p className="text-xs text-gray-500">DM + {session.players.filter(p => p.userId !== session.dmId).length} players</p>
               </div>
               <div className="p-4">
                 <div className="space-y-3">
@@ -349,7 +351,9 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   </div>
                   
                   {/* Players */}
-                  {session.players.map((player, index) => (
+                  {session.players
+                    .filter(player => player.userId !== session.dmId) // DM'i players listesinden çıkar
+                    .map((player, index) => (
                     <div key={player.userId || index} className="flex items-center space-x-3">
                       <div className={`w-3 h-3 rounded-full ${player.isOnline ? 'bg-green-400' : 'bg-gray-300'}`}></div>
                       <div className="flex-1">
@@ -357,13 +361,13 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                           {player.characterName || `Player ${index + 1}`}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {player.isOnline ? 'Online' : 'Offline'} • User ID: {player.userId?.slice(-4)}
+                          {player.isOnline ? 'Online' : 'Offline'}
                         </p>
                       </div>
                     </div>
                   ))}
                   
-                  {session.players.length === 0 && (
+                  {session.players.filter(p => p.userId !== session.dmId).length === 0 && (
                     <p className="text-gray-500 text-sm text-center py-4">
                       No other players yet
                     </p>

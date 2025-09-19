@@ -55,6 +55,11 @@ export async function POST(
     // Check if user is DM
     if (session.dmId === user._id.toString()) {
       console.log('User is DM, no need to join as player');
+      
+      // Remove DM from players array if accidentally added
+      session.players = session.players.filter((player: any) => player.userId !== user._id.toString());
+      await session.save();
+      
       return NextResponse.json({
         success: true,
         isParticipant: true,
