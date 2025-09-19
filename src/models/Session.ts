@@ -16,6 +16,18 @@ export interface IChatMessage {
   message: string;
   timestamp: Date;
   type: 'chat' | 'roll' | 'system';
+  roomId?: string; // Chat room ID
+}
+
+export interface IChatRoom {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean; // Main chat room
+  createdBy: string;
+  createdAt: Date;
+  isPrivate: boolean;
+  allowedUsers?: string[]; // For private rooms
 }
 
 export interface IInitiativeEntry {
@@ -43,6 +55,7 @@ export interface ISession extends Document {
   isActive: boolean;
   isPublic: boolean;
   chatMessages: IChatMessage[];
+  chatRooms: IChatRoom[];
   initiativeOrder: IInitiativeEntry[];
   currentTurn?: string; // characterId of current turn
   createdAt: Date;
@@ -99,7 +112,44 @@ const ChatMessageSchema = new Schema<IChatMessage>({
     type: String,
     enum: ['chat', 'roll', 'system'],
     default: 'chat'
+  },
+  roomId: {
+    type: String,
+    default: 'general' // Default room
   }
+});
+
+const ChatRoomSchema = new Schema<IChatRoom>({
+  id: {
+    type: String,
+    required: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String
+  },
+  isDefault: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
+  allowedUsers: [{
+    type: String
+  }]
 });
 
 const InitiativeEntrySchema = new Schema<IInitiativeEntry>({
@@ -185,6 +235,7 @@ const SessionSchema = new Schema<ISession>({
     default: false
   },
   chatMessages: [ChatMessageSchema],
+  chatRooms: [ChatRoomSchema],
   initiativeOrder: [InitiativeEntrySchema],
   currentTurn: {
     type: String

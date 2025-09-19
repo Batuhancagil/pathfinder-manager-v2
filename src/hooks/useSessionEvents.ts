@@ -157,14 +157,14 @@ export function useSessionEvents({
     setError(null);
   };
 
-  const sendMessage = async (message: string, type: 'chat' | 'roll' | 'system' = 'chat') => {
+  const sendMessage = async (message: string, type: 'chat' | 'roll' | 'system' = 'chat', roomId: string = 'general') => {
     try {
       const response = await fetch(`/api/sessions/${sessionId}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message, type }),
+        body: JSON.stringify({ message, type, roomId }),
         credentials: 'include'
       });
 

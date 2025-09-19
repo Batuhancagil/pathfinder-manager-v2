@@ -370,11 +370,11 @@ export default function InitiativeTracker({
                         <button
                           onClick={() => toggleDead(entry.id)}
                           className={`p-1 rounded hover:bg-gray-200 transition-colors ${
-                            entry.isDead ? 'text-red-600' : 'text-gray-400 hover:text-red-600'
+                            entry.isDead ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-red-600'
                           }`}
                           title={entry.isDead ? 'Revive character' : 'Mark as dead'}
                         >
-                          💀
+                          {entry.isDead ? '💚' : '💀'}
                         </button>
                       )}
                       

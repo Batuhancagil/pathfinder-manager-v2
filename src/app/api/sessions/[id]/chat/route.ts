@@ -42,7 +42,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { message, type = 'chat' } = body;
+    const { message, type = 'chat', roomId = 'general' } = body;
 
     if (!message || !message.trim()) {
       return NextResponse.json({
@@ -76,7 +76,8 @@ export async function POST(
       username: user.name,
       message: message.trim(),
       timestamp: new Date(),
-      type: type
+      type: type,
+      roomId: roomId || 'general'
     };
 
     session.chatMessages.push(chatMessage);

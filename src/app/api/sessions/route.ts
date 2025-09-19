@@ -93,6 +93,18 @@ export async function POST(request: NextRequest) {
       isPublic: isPublic || false,
       players: [],
       chatMessages: [],
+      chatRooms: [
+        {
+          id: 'general',
+          name: 'General',
+          description: 'Main chat room for everyone',
+          isDefault: true,
+          createdBy: user._id.toString(),
+          createdAt: new Date(),
+          isPrivate: false,
+          allowedUsers: []
+        }
+      ],
       initiativeOrder: [],
       isActive: true
     });

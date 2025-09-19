@@ -7,8 +7,13 @@ import { useAuth } from '../../../../hooks/useAuth';
 import { useSessionEvents } from '../../../../hooks/useSessionEvents';
 import { useOnlineStatus } from '../../../../hooks/useOnlineStatus';
 import { ChatMessage } from '../../../../components/Chat/ChatInterface';
+import { IChatRoom, IInitiativeEntry } from '../../../../models/Session';
 
 const ChatInterface = dynamic(() => import('../../../../components/Chat/ChatInterface'), {
+  ssr: false
+});
+
+const ChatRoomManager = dynamic(() => import('../../../../components/Chat/ChatRoomManager'), {
   ssr: false
 });
 
@@ -50,6 +55,9 @@ interface Session {
   maxPlayers: number;
   isActive: boolean;
   chatMessages: ChatMessage[];
+  chatRooms: IChatRoom[];
+  initiativeOrder: IInitiativeEntry[];
+  currentTurn?: string;
   createdAt: string;
 }
 
@@ -62,7 +70,10 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   const [sessionId, setSessionId] = useState<string>('');
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('dice');
+  
+  // Chat room state
+  const [currentRoomId, setCurrentRoomId] = useState('general');
   
   // DM assignment state
   const [showDMAssignment, setShowDMAssignment] = useState(false);
@@ -166,14 +177,43 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleSendMessage = async (message: string) => {
+  const handleSendMessage = async (message: string, type: 'chat' | 'roll' | 'system' = 'chat', roomId: string = currentRoomId) => {
     if (!session || !sendMessage) return;
 
     try {
-      await sendMessage(message, 'chat');
+      await sendMessage(message, type, roomId);
     } catch (error) {
       console.error('Failed to send message:', error);
       setError('Failed to send message');
+    }
+  };
+
+  const handleCreateRoom = async (name: string, description?: string, isPrivate?: boolean) => {
+    if (!sessionId) return;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/chat-rooms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          isPrivate
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create room');
+      }
+
+      // Room will be updated via real-time events
+    } catch (error) {
+      console.error('Failed to create room:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create room');
     }
   };
 
@@ -329,7 +369,6 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   }
 
   const tabs = [
-    { id: 'chat', name: '💬 Chat', icon: '💬' },
     { id: 'dice', name: '🎲 Dice', icon: '🎲' },
     { id: 'voice', name: '🎤 Voice', icon: '🎤' },
     { id: 'initiative', name: '⚔️ Initiative', icon: '⚔️' },
@@ -392,8 +431,25 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
+          {/* Left Panel - Chat Rooms */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm" style={{ height: '600px' }}>
+              <ChatRoomManager
+                sessionId={sessionId}
+                userId={user!.id}
+                isCreator={session?.creatorId === user!.id}
+                messages={session?.chatMessages || []}
+                chatRooms={session?.chatRooms || []}
+                currentRoomId={currentRoomId}
+                onRoomChange={setCurrentRoomId}
+                onSendMessage={handleSendMessage}
+                onCreateRoom={handleCreateRoom}
+              />
+            </div>
+          </div>
+
           {/* Main Panel */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             {/* Tabs */}
             <div className="bg-white rounded-lg shadow-sm">
               <div className="border-b border-gray-200">
@@ -416,16 +472,6 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
 
               {/* Tab Content */}
               <div className="p-6">
-                {activeTab === 'chat' && (
-                  <div style={{ height: '500px' }}>
-                    <ChatInterface
-                      messages={session.chatMessages || []}
-                      onSendMessage={handleSendMessage}
-                      onSendRoll={handleSendRoll}
-                      currentUserId={user!.id}
-                    />
-                  </div>
-                )}
 
                 {activeTab === 'dice' && (
                   <div className="max-w-md mx-auto">
