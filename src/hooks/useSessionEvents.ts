@@ -148,7 +148,7 @@ export function useSessionEvents({
     setError(null);
   };
 
-  const sendMessage = async (message: string, type: 'chat' | 'roll' = 'chat') => {
+  const sendMessage = async (message: string, type: 'chat' | 'roll' | 'system' = 'chat') => {
     try {
       const response = await fetch(`/api/sessions/${sessionId}/chat`, {
         method: 'POST',

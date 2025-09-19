@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-
-interface DiceRoll {
-  dice: string;
-  result: number;
-  individual: number[];
-  modifier: number;
-  total: number;
-}
+import { parseDiceExpression, formatDiceResult, DiceRoll } from '../../utils/diceParser';
 
 interface DiceRollerProps {
   onRoll?: (roll: DiceRoll) => void;
@@ -25,55 +18,17 @@ const COMMON_DICE = [
 ];
 
 export default function DiceRoller({ onRoll }: DiceRollerProps) {
-  const [diceExpression, setDiceExpression] = useState('1d20');
-  const [modifier, setModifier] = useState(0);
+  const [diceExpression, setDiceExpression] = useState('1d20+4');
   const [lastRoll, setLastRoll] = useState<DiceRoll | null>(null);
   const [rolling, setRolling] = useState(false);
 
-  const rollDice = (sides: number): number => {
-    return Math.floor(Math.random() * sides) + 1;
-  };
-
-  const parseDiceExpression = (expression: string): { count: number; sides: number } => {
-    const match = expression.match(/^(\d+)?d(\d+)$/i);
-    if (!match) {
-      throw new Error('Invalid dice expression');
-    }
-    
-    const count = parseInt(match[1] || '1');
-    const sides = parseInt(match[2]);
-    
-    if (count < 1 || count > 100 || sides < 2 || sides > 1000) {
-      throw new Error('Invalid dice parameters');
-    }
-    
-    return { count, sides };
-  };
+  // Removed old parsing logic - now using utility function
 
   const handleRoll = async () => {
     try {
       setRolling(true);
       
-      const { count, sides } = parseDiceExpression(diceExpression);
-      const individual: number[] = [];
-      let sum = 0;
-      
-      for (let i = 0; i < count; i++) {
-        const roll = rollDice(sides);
-        individual.push(roll);
-        sum += roll;
-      }
-      
-      const total = sum + modifier;
-      
-      const rollResult: DiceRoll = {
-        dice: diceExpression,
-        result: sum,
-        individual,
-        modifier,
-        total
-      };
-      
+      const rollResult = parseDiceExpression(diceExpression);
       setLastRoll(rollResult);
       
       // Call callback if provided
@@ -86,61 +41,32 @@ export default function DiceRoller({ onRoll }: DiceRollerProps) {
       
     } catch (error) {
       console.error('Dice roll error:', error);
-      alert('Invalid dice expression. Use format like: 1d20, 2d6, 3d8+2');
+      alert('Invalid dice expression. Use format like: 1d20+4, 2d6+1d4+2, 3d8-1');
     } finally {
       setRolling(false);
     }
   };
 
   const handleQuickRoll = (diceType: string) => {
-    setDiceExpression(`1${diceType}`);
+    const expression = `1${diceType}`;
+    setDiceExpression(expression);
+    
     setTimeout(() => {
-      const expression = `1${diceType}`;
-      setDiceExpression(expression);
-      // Trigger roll after setting expression
-      const { count, sides } = parseDiceExpression(expression);
-      const individual: number[] = [];
-      let sum = 0;
-      
-      for (let i = 0; i < count; i++) {
-        const roll = rollDice(sides);
-        individual.push(roll);
-        sum += roll;
-      }
-      
-      const total = sum + modifier;
-      
-      const rollResult: DiceRoll = {
-        dice: expression,
-        result: sum,
-        individual,
-        modifier,
-        total
-      };
-      
-      setLastRoll(rollResult);
-      
-      if (onRoll) {
-        onRoll(rollResult);
+      try {
+        const rollResult = parseDiceExpression(expression);
+        setLastRoll(rollResult);
+        
+        if (onRoll) {
+          onRoll(rollResult);
+        }
+      } catch (error) {
+        console.error('Quick roll error:', error);
       }
     }, 100);
   };
 
-  const formatRollResult = (roll: DiceRoll): string => {
-    let result = `🎲 ${roll.dice}`;
-    
-    if (roll.individual.length > 1) {
-      result += ` → [${roll.individual.join(', ')}] = ${roll.result}`;
-    } else {
-      result += ` → ${roll.result}`;
-    }
-    
-    if (roll.modifier !== 0) {
-      result += ` ${roll.modifier >= 0 ? '+' : ''}${roll.modifier} = ${roll.total}`;
-    }
-    
-    return result;
-  };
+  // Use the utility function for formatting
+  const formatRollResult = formatDiceResult;
 
   return (
     <div className="bg-white border rounded-lg p-4 space-y-4">
@@ -181,20 +107,12 @@ export default function DiceRoller({ onRoll }: DiceRollerProps) {
               type="text"
               value={diceExpression}
               onChange={(e) => setDiceExpression(e.target.value)}
-              placeholder="1d20, 2d6, 3d8..."
+              placeholder="1d20+4, 2d6+1d4+2, 3d8-1..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
-          </div>
-          <div className="w-24">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Modifier
-            </label>
-            <input
-              type="number"
-              value={modifier}
-              onChange={(e) => setModifier(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+            <p className="mt-1 text-xs text-gray-500">
+              Advanced: 1d20+4, 2d6+1d4+2, 3d8-1
+            </p>
           </div>
         </div>
 
@@ -223,17 +141,15 @@ export default function DiceRoller({ onRoll }: DiceRollerProps) {
           <div className="text-sm font-medium text-indigo-900">
             {formatRollResult(lastRoll)}
           </div>
-          {lastRoll.individual.length > 1 && (
-            <div className="text-xs text-indigo-700 mt-1">
-              Individual rolls: {lastRoll.individual.join(', ')}
-            </div>
-          )}
+          <div className="text-xs text-indigo-700 mt-1">
+            Breakdown: {lastRoll.breakdown}
+          </div>
         </div>
       )}
 
       {/* Examples */}
       <div className="text-xs text-gray-500">
-        <p><strong>Examples:</strong> 1d20, 2d6+3, 4d8-2, 1d100</p>
+        <p><strong>Advanced Examples:</strong> 1d20+4, 2d6+1d4+2, 3d8-1, 1d12+1d6+3</p>
       </div>
     </div>
   );

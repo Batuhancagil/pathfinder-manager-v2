@@ -23,6 +23,10 @@ const WebRTCVoiceChat = dynamic(() => import('../../../../components/Voice/WebRT
   ssr: false
 });
 
+const InitiativeTracker = dynamic(() => import('../../../../components/Initiative/InitiativeTracker'), {
+  ssr: false
+});
+
 interface Player {
   userId: string;
   characterId?: string;
@@ -418,11 +422,19 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 )}
 
                 {activeTab === 'initiative' && (
-                  <div className="text-center py-12">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">⚔️ Initiative Tracker</h3>
-                    <p className="text-gray-600 mb-4">Track turn order and combat initiatives</p>
-                    <p className="text-sm text-gray-500">Coming soon...</p>
-                  </div>
+                  <InitiativeTracker
+                    sessionId={sessionId}
+                    userId={user!.id}
+                    isDM={session?.dmId === user!.id}
+                    isCreator={session?.creatorId === user!.id}
+                    onSendMessage={async (message, type) => {
+                      try {
+                        await sendMessage(message, type);
+                      } catch (error) {
+                        console.error('Failed to send initiative message:', error);
+                      }
+                    }}
+                  />
                 )}
 
                 {activeTab === 'notes' && (
