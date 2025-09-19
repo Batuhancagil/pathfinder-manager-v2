@@ -98,6 +98,13 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
         fetchSession(sessionId);
       }
     },
+    onInitiativeUpdate: (initiativeOrder) => {
+      console.log('Initiative order updated:', initiativeOrder);
+      setSession(prev => prev ? {
+        ...prev,
+        initiativeOrder
+      } : null);
+    },
     onWebRTCSignal: handleWebRTCSignal
   });
 
@@ -406,6 +413,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                     userId={user!.id}
                     isDM={session?.dmId === user!.id}
                     isCreator={session?.creatorId === user!.id}
+                    session={session}
                     onSendMessage={async (message, type) => {
                       try {
                         await sendMessage(message, type);

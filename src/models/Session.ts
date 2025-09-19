@@ -19,10 +19,15 @@ export interface IChatMessage {
 }
 
 export interface IInitiativeEntry {
-  characterId: string;
+  id: string;
   characterName: string;
   initiative: number;
+  rollDetails: string;
+  userId: string;
+  userName: string;
   isActive: boolean;
+  isDead: boolean;
+  addedAt: Date;
 }
 
 export interface ISession extends Document {
@@ -98,7 +103,7 @@ const ChatMessageSchema = new Schema<IChatMessage>({
 });
 
 const InitiativeEntrySchema = new Schema<IInitiativeEntry>({
-  characterId: {
+  id: {
     type: String,
     required: true
   },
@@ -110,9 +115,29 @@ const InitiativeEntrySchema = new Schema<IInitiativeEntry>({
     type: Number,
     required: true
   },
+  rollDetails: {
+    type: String,
+    required: true
+  },
+  userId: {
+    type: String,
+    required: true
+  },
+  userName: {
+    type: String,
+    required: true
+  },
   isActive: {
     type: Boolean,
     default: true
+  },
+  isDead: {
+    type: Boolean,
+    default: false
+  },
+  addedAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
