@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../components/Chat/ChatInterface';
 
 interface SessionEvent {
-  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'initiative_update' | 'webrtc_signal';
+  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'initiative_update' | 'chat_rooms_update' | 'webrtc_signal';
   sessionId?: string;
   userId?: string;
   isOnline?: boolean;
@@ -17,6 +17,7 @@ interface SessionEvent {
     isActive: boolean;
   };
   initiativeOrder?: any[];
+  chatRooms?: any[];
   signalType?: string;
   data?: any;
   fromUserId?: string;
@@ -30,6 +31,7 @@ interface UseSessionEventsProps {
   onNewMessage?: (message: ChatMessage) => void;
   onParticipantChange?: () => void;
   onInitiativeUpdate?: (initiativeOrder: any[]) => void;
+  onChatRoomsUpdate?: (chatRooms: any[]) => void;
   onWebRTCSignal?: (signal: any) => void;
 }
 
@@ -39,6 +41,7 @@ export function useSessionEvents({
   onNewMessage, 
   onParticipantChange,
   onInitiativeUpdate,
+  onChatRoomsUpdate,
   onWebRTCSignal
 }: UseSessionEventsProps) {
   const [connected, setConnected] = useState(false);
@@ -104,6 +107,12 @@ export function useSessionEvents({
           case 'initiative_update':
             if (data.initiativeOrder && onInitiativeUpdate) {
               onInitiativeUpdate(data.initiativeOrder);
+            }
+            break;
+
+          case 'chat_rooms_update':
+            if (data.chatRooms && onChatRoomsUpdate) {
+              onChatRoomsUpdate(data.chatRooms);
             }
             break;
 

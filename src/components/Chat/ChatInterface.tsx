@@ -9,6 +9,7 @@ export interface ChatMessage {
   message: string;
   timestamp: string;
   type: 'chat' | 'roll' | 'system';
+  roomId?: string;
 }
 
 interface ChatInterfaceProps {

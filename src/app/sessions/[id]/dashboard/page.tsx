@@ -13,7 +13,11 @@ const ChatInterface = dynamic(() => import('../../../../components/Chat/ChatInte
   ssr: false
 });
 
-const ChatRoomManager = dynamic(() => import('../../../../components/Chat/ChatRoomManager'), {
+const ChatRoomSidebar = dynamic(() => import('../../../../components/Chat/ChatRoomSidebar'), {
+  ssr: false
+});
+
+const ChatRoomInterface = dynamic(() => import('../../../../components/Chat/ChatRoomInterface'), {
   ssr: false
 });
 
@@ -70,7 +74,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   const [sessionId, setSessionId] = useState<string>('');
   
   // Active tab state
-  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('dice');
+  const [activeTab, setActiveTab] = useState<'chat' | 'dice' | 'voice' | 'initiative' | 'notes'>('chat');
   
   // Chat room state
   const [currentRoomId, setCurrentRoomId] = useState('general');
@@ -109,13 +113,20 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
         fetchSession(sessionId);
       }
     },
-    onInitiativeUpdate: (initiativeOrder) => {
-      console.log('Initiative order updated:', initiativeOrder);
-      setSession(prev => prev ? {
-        ...prev,
-        initiativeOrder
-      } : null);
-    },
+      onInitiativeUpdate: (initiativeOrder) => {
+        console.log('Initiative order updated:', initiativeOrder);
+        setSession(prev => prev ? {
+          ...prev,
+          initiativeOrder
+        } : null);
+      },
+      onChatRoomsUpdate: (chatRooms) => {
+        console.log('Chat rooms updated:', chatRooms);
+        setSession(prev => prev ? {
+          ...prev,
+          chatRooms
+        } : null);
+      },
     onWebRTCSignal: handleWebRTCSignal
   });
 
@@ -369,6 +380,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
   }
 
   const tabs = [
+    { id: 'chat', name: '💬 Chat', icon: '💬' },
     { id: 'dice', name: '🎲 Dice', icon: '🎲' },
     { id: 'voice', name: '🎤 Voice', icon: '🎤' },
     { id: 'initiative', name: '⚔️ Initiative', icon: '⚔️' },
@@ -431,19 +443,28 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
-          {/* Left Panel - Chat Rooms */}
+          {/* Left Panel - Chat Room Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm" style={{ height: '600px' }}>
-              <ChatRoomManager
+            <div className="rounded-lg shadow-sm" style={{ height: '600px' }}>
+              <ChatRoomSidebar
                 sessionId={sessionId}
                 userId={user!.id}
                 isCreator={session?.creatorId === user!.id}
-                messages={session?.chatMessages || []}
                 chatRooms={session?.chatRooms || []}
                 currentRoomId={currentRoomId}
-                onRoomChange={setCurrentRoomId}
-                onSendMessage={handleSendMessage}
+                onRoomChange={(roomId) => {
+                  setCurrentRoomId(roomId);
+                  setActiveTab('chat'); // Auto-switch to chat tab when room is selected
+                }}
                 onCreateRoom={handleCreateRoom}
+                messageCount={(() => {
+                  const counts: { [roomId: string]: number } = {};
+                  (session?.chatMessages || []).forEach(msg => {
+                    const roomId = msg.roomId || 'general';
+                    counts[roomId] = (counts[roomId] || 0) + 1;
+                  });
+                  return counts;
+                })()}
               />
             </div>
           </div>
@@ -471,7 +492,20 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               </div>
 
               {/* Tab Content */}
-              <div className="p-6">
+              <div className={activeTab === 'chat' ? 'h-full' : 'p-6'}>
+                {activeTab === 'chat' && (
+                  <div style={{ height: '600px' }}>
+                    {session?.chatRooms && session.chatRooms.length > 0 && (
+                      <ChatRoomInterface
+                        sessionId={sessionId}
+                        userId={user!.id}
+                        currentRoom={session.chatRooms.find(room => room.id === currentRoomId) || session.chatRooms[0]}
+                        messages={session?.chatMessages || []}
+                        onSendMessage={handleSendMessage}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {activeTab === 'dice' && (
                   <div className="max-w-md mx-auto">
