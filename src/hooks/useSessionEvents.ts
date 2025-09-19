@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../components/Chat/ChatInterface';
 
 interface SessionEvent {
-  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'webrtc_signal';
+  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'webrtc_signal';
   sessionId?: string;
   userId?: string;
+  isOnline?: boolean;
   message?: ChatMessage;
   session?: {
     id: string;
@@ -91,6 +92,7 @@ export function useSessionEvents({
 
           case 'participant_joined':
           case 'participant_left':
+          case 'participant_status_update':
             if (onParticipantChange) {
               onParticipantChange();
             }

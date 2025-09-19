@@ -29,6 +29,7 @@ interface Player {
   characterName?: string;
   joinedAt: string;
   isOnline: boolean;
+  lastSeen: string;
 }
 
 interface Session {
@@ -202,6 +203,73 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       setError('Failed to assign DM');
     }
   };
+
+  const handleLeaveSession = async () => {
+    if (!confirm('Are you sure you want to leave this session?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/leave`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.sessionEnded) {
+          router.push('/sessions?message=Session ended');
+        } else {
+          router.push('/sessions?message=Left session successfully');
+        }
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to leave session');
+      }
+    } catch (err) {
+      setError('Failed to leave session');
+    }
+  };
+
+  // Update online status periodically
+  useEffect(() => {
+    if (!sessionId || !user) return;
+
+    const updateStatus = async () => {
+      try {
+        await fetch(`/api/sessions/${sessionId}/status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isOnline: true }),
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.warn('Failed to update online status:', error);
+      }
+    };
+
+    // Update status immediately
+    updateStatus();
+
+    // Update status every 30 seconds
+    const interval = setInterval(updateStatus, 30000);
+
+    // Update status when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionId, user]);
 
   if (authLoading || loading) {
     return (
@@ -409,19 +477,29 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   {/* Players */}
                   {session.players
                     .filter(player => player.userId !== session.dmId) // DM'i players listesinden çıkar
-                    .map((player, index) => (
-                    <div key={player.userId || index} className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${player.isOnline ? 'bg-green-400' : 'bg-gray-300'}`}></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {player.characterName || `Player ${index + 1}`}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {player.isOnline ? 'Online' : 'Offline'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    .map((player, index) => {
+                      const lastSeenDate = new Date(player.lastSeen);
+                      const now = new Date();
+                      const timeDiff = now.getTime() - lastSeenDate.getTime();
+                      const isRecentlyOnline = timeDiff < 60000; // 1 minute
+                      
+                      return (
+                        <div key={player.userId || index} className="flex items-center space-x-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            player.isOnline && isRecentlyOnline ? 'bg-green-400' : 'bg-gray-300'
+                          }`}></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {player.characterName || `Player ${index + 1}`}
+                              {player.userId === user?.id && ' (You)'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {player.isOnline && isRecentlyOnline ? 'Online' : `Last seen ${lastSeenDate.toLocaleTimeString()}`}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   
                   {session.players.filter(p => p.userId !== session.dmId).length === 0 && (
                     <p className="text-gray-500 text-sm text-center py-4">
@@ -474,6 +552,14 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 </button>
                 <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded">
                   🎵 Play Music
+                </button>
+                
+                {/* Leave Session Button */}
+                <button 
+                  onClick={handleLeaveSession}
+                  className="w-full text-left px-3 py-2 text-sm text-red-700 hover:bg-red-50 rounded border border-red-200"
+                >
+                  🚪 Leave Session
                 </button>
               </div>
             </div>

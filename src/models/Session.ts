@@ -6,6 +6,7 @@ export interface IPlayer {
   characterName?: string;
   joinedAt: Date;
   isOnline: boolean;
+  lastSeen: Date;
 }
 
 export interface IChatMessage {
@@ -61,6 +62,10 @@ const PlayerSchema = new Schema<IPlayer>({
   isOnline: {
     type: Boolean,
     default: true
+  },
+  lastSeen: {
+    type: Date,
+    default: Date.now
   }
 });
 

@@ -72,6 +72,7 @@ export async function POST(
     if (existingPlayer) {
       console.log('User already in session as player');
       existingPlayer.isOnline = true;
+      existingPlayer.lastSeen = new Date();
       await session.save();
       
       return NextResponse.json({
@@ -96,7 +97,8 @@ export async function POST(
       userId: user._id.toString(),
       characterName: `${user.name}`,
       joinedAt: new Date(),
-      isOnline: true
+      isOnline: true,
+      lastSeen: new Date()
     });
 
     // Add system message

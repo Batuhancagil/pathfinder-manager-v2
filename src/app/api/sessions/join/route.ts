@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       // Update existing player info
       existingPlayer.characterName = characterName;
       existingPlayer.isOnline = true;
-      existingPlayer.joinedAt = new Date();
+      existingPlayer.lastSeen = new Date();
     } else {
       console.log('Adding new player to session');
       // Add new player
@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
         userId: user._id.toString(),
         characterName,
         joinedAt: new Date(),
-        isOnline: true
+        isOnline: true,
+        lastSeen: new Date()
       });
 
       // Add system message
