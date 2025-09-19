@@ -156,9 +156,19 @@ export default function SessionsPage() {
         <div className="bg-white shadow rounded-lg mb-6">
           <div className="px-4 py-5 sm:p-6">
             <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">D&D Sessions</h1>
-                <p className="text-gray-600">Create or join gaming sessions</p>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/dashboard"
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                  </svg>
+                </Link>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">D&D Sessions</h1>
+                  <p className="text-gray-600">Create or join gaming sessions</p>
+                </div>
               </div>
               <div className="flex space-x-4">
                 <button
