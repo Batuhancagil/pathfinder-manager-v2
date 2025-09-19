@@ -250,6 +250,46 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     }
   };
 
+  // Handle route changes for offline status
+  useEffect(() => {
+    const handleRouteChange = () => {
+      console.log('Route changing from dashboard, setting offline');
+      // Set offline when leaving the session dashboard
+      if (sessionId && user?.id) {
+        fetch(`/api/sessions/${sessionId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isOnline: false }),
+          credentials: 'include'
+        }).catch(console.warn);
+      }
+    };
+
+    // Listen for Next.js App Router navigation
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function(...args) {
+      handleRouteChange();
+      return originalPushState.apply(window.history, args);
+    };
+
+    window.history.replaceState = function(...args) {
+      handleRouteChange();
+      return originalReplaceState.apply(window.history, args);
+    };
+
+    // Listen for browser back/forward
+    window.addEventListener('popstate', handleRouteChange);
+
+    return () => {
+      // Restore original methods
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [sessionId, user?.id]);
+
   // Online status tracking is now handled by useOnlineStatus hook
 
   if (authLoading || loading) {

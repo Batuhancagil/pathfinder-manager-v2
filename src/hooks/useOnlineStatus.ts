@@ -94,11 +94,6 @@ export function useOnlineStatus({ sessionId, userId, enabled }: UseOnlineStatusP
       }
     };
 
-    // Handle navigation within the app (Next.js router)
-    const handleRouteChange = () => {
-      console.log('Route changing, setting offline');
-      updateStatus(false);
-    };
 
     // Handle focus/blur events (more conservative approach)
     const handleFocus = () => {
@@ -128,10 +123,9 @@ export function useOnlineStatus({ sessionId, userId, enabled }: UseOnlineStatusP
     document.addEventListener('keypress', handleActivity);
     document.addEventListener('click', handleActivity);
     
-    // Listen for route changes (Next.js specific)
-    if (typeof window !== 'undefined' && (window as any).next?.router) {
-      (window as any).next.router.events.on('routeChangeStart', handleRouteChange);
-    }
+    // Listen for route changes (Next.js specific) - use useRouter hook instead
+    // Note: This approach doesn't work reliably in useEffect
+    // We'll handle route changes via beforeunload which covers navigation
 
     // Cleanup
     return () => {
@@ -153,10 +147,7 @@ export function useOnlineStatus({ sessionId, userId, enabled }: UseOnlineStatusP
       document.removeEventListener('keypress', handleActivity);
       document.removeEventListener('click', handleActivity);
       
-      // Remove Next.js route listeners
-      if (typeof window !== 'undefined' && (window as any).next?.router) {
-        (window as any).next.router.events.off('routeChangeStart', handleRouteChange);
-      }
+      // Route change cleanup not needed - handled via beforeunload
     };
   }, [sessionId, userId, enabled]);
 
