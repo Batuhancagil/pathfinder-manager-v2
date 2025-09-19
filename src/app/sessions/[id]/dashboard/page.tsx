@@ -328,7 +328,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                   const onlinePlayers = session.players.filter(p => {
                     if (p.userId === session.dmId) return false; // Exclude DM from player count
                     const timeDiff = now.getTime() - new Date(p.lastSeen).getTime();
-                    return p.isOnline && timeDiff < 90000; // 1.5 minutes
+                    return p.isOnline && timeDiff < 360000; // 6 minutes
                   }).length;
                   const totalPlayers = session.players.filter(p => p.userId !== session.dmId).length;
                   return `${onlinePlayers + 1}/${totalPlayers + 1} online`;
@@ -448,30 +448,70 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               <div className="p-4">
                 <div className="space-y-3">
                   {/* Creator */}
-                  <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
-                    <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        ⚙️ {session.creatorName}
-                        {user?.id === session.creatorId && ' (You)'}
-                      </p>
-                      <p className="text-xs text-gray-500">Session Creator</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const creatorPlayer = session.players.find(p => p.userId === session.creatorId);
+                    const now = new Date();
+                    const isCreatorOnline = creatorPlayer ? 
+                      (creatorPlayer.isOnline && (now.getTime() - new Date(creatorPlayer.lastSeen).getTime()) < 360000) : 
+                      (user?.id === session.creatorId); // Current user is always considered online
+                    
+                    return (
+                      <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
+                        <div className={`w-3 h-3 rounded-full transition-colors ${
+                          isCreatorOnline ? 'bg-blue-400 animate-pulse' : 'bg-red-400'
+                        }`}></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            ⚙️ {session.creatorName}
+                            {user?.id === session.creatorId && ' (You)'}
+                          </p>
+                          <p className={`text-xs ${isCreatorOnline ? 'text-blue-600' : 'text-red-500'}`}>
+                            Session Creator • {isCreatorOnline ? 'Online' : 'Offline'}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            isCreatorOnline ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {isCreatorOnline ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* DM */}
-                  {session.dmName && (
-                    <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
-                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          👑 {session.dmName}
-                          {user?.id === session.dmId && ' (You)'}
-                        </p>
-                        <p className="text-xs text-gray-500">Dungeon Master</p>
+                  {session.dmName && (() => {
+                    const dmPlayer = session.players.find(p => p.userId === session.dmId);
+                    const now = new Date();
+                    const isDMOnline = dmPlayer ? 
+                      (dmPlayer.isOnline && (now.getTime() - new Date(dmPlayer.lastSeen).getTime()) < 360000) : 
+                      (user?.id === session.dmId); // Current user is always considered online
+                    
+                    return (
+                      <div className="flex items-center space-x-3 pb-2 border-b border-gray-100">
+                        <div className={`w-3 h-3 rounded-full transition-colors ${
+                          isDMOnline ? 'bg-purple-400 animate-pulse' : 'bg-red-400'
+                        }`}></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            👑 {session.dmName}
+                            {user?.id === session.dmId && ' (You)'}
+                          </p>
+                          <p className={`text-xs ${isDMOnline ? 'text-purple-600' : 'text-red-500'}`}>
+                            Dungeon Master • {isDMOnline ? 'Online' : 'Offline'}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            isDMOnline ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {isDMOnline ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   
                   {/* Players */}
                   {session.players
@@ -480,7 +520,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                       const lastSeenDate = new Date(player.lastSeen);
                       const now = new Date();
                       const timeDiff = now.getTime() - lastSeenDate.getTime();
-                      const isRecentlyOnline = timeDiff < 90000; // 1.5 minutes
+                      const isRecentlyOnline = timeDiff < 360000; // 6 minutes (more lenient)
                       const isOnline = player.isOnline && isRecentlyOnline;
                       
                       return (
