@@ -33,8 +33,18 @@ export async function POST(
       }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { isOnline } = body;
+    let isOnline;
+    
+    // Handle both JSON and FormData (for sendBeacon)
+    const contentType = request.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      const body = await request.json();
+      isOnline = body.isOnline;
+    } else {
+      // FormData from sendBeacon
+      const formData = await request.formData();
+      isOnline = formData.get('isOnline') === 'true';
+    }
 
     // Find session
     const session = await (Session as any).findById(id);

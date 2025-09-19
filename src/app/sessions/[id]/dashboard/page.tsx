@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useAuth } from '../../../../hooks/useAuth';
 import { useSessionEvents } from '../../../../hooks/useSessionEvents';
+import { useOnlineStatus } from '../../../../hooks/useOnlineStatus';
 import { ChatMessage } from '../../../../components/Chat/ChatInterface';
 
 const ChatInterface = dynamic(() => import('../../../../components/Chat/ChatInterface'), {
@@ -98,6 +99,13 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       }
     },
     onWebRTCSignal: handleWebRTCSignal
+  });
+
+  // Online status tracking
+  useOnlineStatus({
+    sessionId,
+    userId: user?.id || '',
+    enabled: !!sessionId && !!user
   });
 
   useEffect(() => {
@@ -235,45 +243,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     }
   };
 
-  // Update online status periodically
-  useEffect(() => {
-    if (!sessionId || !user) return;
-
-    const updateStatus = async () => {
-      try {
-        await fetch(`/api/sessions/${sessionId}/status`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ isOnline: true }),
-          credentials: 'include'
-        });
-      } catch (error) {
-        console.warn('Failed to update online status:', error);
-      }
-    };
-
-    // Update status immediately
-    updateStatus();
-
-    // Update status every 30 seconds
-    const interval = setInterval(updateStatus, 30000);
-
-    // Update status when page becomes visible
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        updateStatus();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [sessionId, user]);
+  // Online status tracking is now handled by useOnlineStatus hook
 
   if (authLoading || loading) {
     return (
@@ -346,7 +316,16 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">
-                {session.players.filter(p => p.isOnline && p.userId !== session.dmId).length + 1}/{session.players.filter(p => p.userId !== session.dmId).length + 1} online
+                {(() => {
+                  const now = new Date();
+                  const onlinePlayers = session.players.filter(p => {
+                    if (p.userId === session.dmId) return false; // Exclude DM from player count
+                    const timeDiff = now.getTime() - new Date(p.lastSeen).getTime();
+                    return p.isOnline && timeDiff < 90000; // 1.5 minutes
+                  }).length;
+                  const totalPlayers = session.players.filter(p => p.userId !== session.dmId).length;
+                  return `${onlinePlayers + 1}/${totalPlayers + 1} online`;
+                })()}
                 <span className="text-xs text-gray-400 ml-1">
                   (DM + {session.players.filter(p => p.userId !== session.dmId).length} players)
                 </span>
@@ -493,21 +472,35 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                       const lastSeenDate = new Date(player.lastSeen);
                       const now = new Date();
                       const timeDiff = now.getTime() - lastSeenDate.getTime();
-                      const isRecentlyOnline = timeDiff < 60000; // 1 minute
+                      const isRecentlyOnline = timeDiff < 90000; // 1.5 minutes
+                      const isOnline = player.isOnline && isRecentlyOnline;
                       
                       return (
                         <div key={player.userId || index} className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            player.isOnline && isRecentlyOnline ? 'bg-green-400' : 'bg-gray-300'
+                          <div className={`w-3 h-3 rounded-full transition-colors ${
+                            isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'
                           }`}></div>
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">
                               {player.characterName || `Player ${index + 1}`}
                               {player.userId === user?.id && ' (You)'}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              {player.isOnline && isRecentlyOnline ? 'Online' : `Last seen ${lastSeenDate.toLocaleTimeString()}`}
+                            <p className={`text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
+                              {isOnline ? 'Online' : `Offline • Last seen ${lastSeenDate.toLocaleTimeString()}`}
                             </p>
+                          </div>
+                          
+                          {/* Status indicator */}
+                          <div className="flex-shrink-0">
+                            {isOnline ? (
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                Online
+                              </span>
+                            ) : (
+                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                Offline
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
