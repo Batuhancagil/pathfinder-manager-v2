@@ -25,6 +25,10 @@ const DiceRoller = dynamic(() => import('../../../../components/Dice/DiceRoller'
   ssr: false
 });
 
+const DiceChannelInterface = dynamic(() => import('../../../../components/Chat/DiceChannelInterface'), {
+  ssr: false
+});
+
 const VoiceChat = dynamic(() => import('../../../../components/Voice/VoiceChat'), {
   ssr: false
 });
@@ -274,6 +278,34 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     }
   };
 
+  const handleKickPlayer = async (targetUserId: string, targetName: string) => {
+    const reason = prompt(`Why are you kicking ${targetName}? (Optional)`);
+    if (reason === null) return; // User cancelled
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/kick`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetUserId,
+          reason: reason.trim() || undefined
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to kick player');
+      }
+
+      // Success message will be shown via system message in chat
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to kick player');
+    }
+  };
+
   const handleLeaveSession = async () => {
     if (!confirm('Are you sure you want to leave this session?')) {
       return;
@@ -495,15 +527,33 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
               <div className={activeTab === 'chat' ? 'h-full' : 'p-6'}>
                 {activeTab === 'chat' && (
                   <div style={{ height: '600px' }}>
-                    {session?.chatRooms && session.chatRooms.length > 0 && (
-                      <ChatRoomInterface
-                        sessionId={sessionId}
-                        userId={user!.id}
-                        currentRoom={session.chatRooms.find(room => room.id === currentRoomId) || session.chatRooms[0]}
-                        messages={session?.chatMessages || []}
-                        onSendMessage={handleSendMessage}
-                      />
-                    )}
+                    {session?.chatRooms && session.chatRooms.length > 0 && (() => {
+                      const currentRoom = session.chatRooms.find(room => room.id === currentRoomId) || session.chatRooms[0];
+                      
+                      // Use DiceChannelInterface for dice room
+                      if (currentRoom.id === 'dice') {
+                        return (
+                          <DiceChannelInterface
+                            sessionId={sessionId}
+                            userId={user!.id}
+                            currentRoom={currentRoom}
+                            messages={session?.chatMessages || []}
+                            onSendMessage={handleSendMessage}
+                          />
+                        );
+                      }
+                      
+                      // Use regular ChatRoomInterface for other rooms
+                      return (
+                        <ChatRoomInterface
+                          sessionId={sessionId}
+                          userId={user!.id}
+                          currentRoom={currentRoom}
+                          messages={session?.chatMessages || []}
+                          onSendMessage={handleSendMessage}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -633,46 +683,64 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                     );
                   })()}
                   
-                  {/* Players */}
-                  {session.players
-                    .filter(player => player.userId !== session.dmId) // DM'i players listesinden çıkar
-                    .map((player, index) => {
-                      const lastSeenDate = new Date(player.lastSeen);
-                      const now = new Date();
-                      const timeDiff = now.getTime() - lastSeenDate.getTime();
-                      const isRecentlyOnline = timeDiff < 360000; // 6 minutes (more lenient)
-                      const isOnline = player.isOnline && isRecentlyOnline;
-                      
-                      return (
-                        <div key={player.userId || index} className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full transition-colors ${
-                            isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'
-                          }`}></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {player.characterName || `Player ${index + 1}`}
-                              {player.userId === user?.id && ' (You)'}
-                            </p>
-                            <p className={`text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
-                              {isOnline ? 'Online' : `Offline • Last seen ${lastSeenDate.toLocaleTimeString()}`}
-                            </p>
-                          </div>
-                          
-                          {/* Status indicator */}
-                          <div className="flex-shrink-0">
-                            {isOnline ? (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                Online
-                              </span>
-                            ) : (
-                              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                Offline
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                       {/* Players */}
+                       {session.players
+                         .filter(player => player.userId !== session.dmId) // DM'i players listesinden çıkar
+                         .map((player, index) => {
+                           const lastSeenDate = new Date(player.lastSeen);
+                           const now = new Date();
+                           const timeDiff = now.getTime() - lastSeenDate.getTime();
+                           const isRecentlyOnline = timeDiff < 360000; // 6 minutes (more lenient)
+                           const isOnline = player.isOnline && isRecentlyOnline;
+                           const isCurrentUserCreator = user?.id === session.creatorId;
+                           const isNotCurrentUser = player.userId !== user?.id;
+                           
+                           return (
+                             <div key={player.userId || index} className="flex items-center space-x-3">
+                               <div className={`w-3 h-3 rounded-full transition-colors ${
+                                 isOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+                               }`}></div>
+                               <div className="flex-1">
+                                 <p className="text-sm font-medium text-gray-900">
+                                   {player.characterName || `Player ${index + 1}`}
+                                   {player.userId === user?.id && ' (You)'}
+                                 </p>
+                                 <p className={`text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
+                                   {isOnline ? 'Online' : `Offline • Last seen ${lastSeenDate.toLocaleTimeString()}`}
+                                 </p>
+                               </div>
+                               
+                               {/* Status and Actions */}
+                               <div className="flex items-center space-x-2">
+                                 {/* Status indicator */}
+                                 <div className="flex-shrink-0">
+                                   {isOnline ? (
+                                     <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                       Online
+                                     </span>
+                                   ) : (
+                                     <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                       Offline
+                                     </span>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Kick button for session creator */}
+                                 {isCurrentUserCreator && isNotCurrentUser && (
+                                   <button
+                                     onClick={() => handleKickPlayer(player.userId, player.characterName || 'Unknown Player')}
+                                     className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                     title="Kick player from session"
+                                   >
+                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                     </svg>
+                                   </button>
+                                 )}
+                               </div>
+                             </div>
+                           );
+                         })}
                   
                   {session.players.filter(p => p.userId !== session.dmId).length === 0 && (
                     <p className="text-gray-500 text-sm text-center py-4">

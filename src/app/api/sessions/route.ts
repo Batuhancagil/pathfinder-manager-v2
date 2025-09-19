@@ -103,6 +103,16 @@ export async function POST(request: NextRequest) {
           createdAt: new Date(),
           isPrivate: false,
           allowedUsers: []
+        },
+        {
+          id: 'dice',
+          name: 'Dice',
+          description: 'Roll dice and see results here',
+          isDefault: false,
+          createdBy: user._id.toString(),
+          createdAt: new Date(),
+          isPrivate: false,
+          allowedUsers: []
         }
       ],
       initiativeOrder: [],
