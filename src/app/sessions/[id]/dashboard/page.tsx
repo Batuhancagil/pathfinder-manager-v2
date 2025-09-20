@@ -103,7 +103,22 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     onSessionUpdate: (updatedSession) => {
       console.log('Session updated:', updatedSession);
       console.log('Players in updated session:', updatedSession.players);
-      setSession(updatedSession);
+      
+      // Preserve current user's roomLastSeen data during real-time updates
+      setSession(prevSession => {
+        if (!prevSession || !user) return updatedSession;
+        
+        const newSession = { ...updatedSession };
+        const prevPlayer = prevSession.players.find(p => p.userId === user.id);
+        const newPlayer = newSession.players.find(p => p.userId === user.id);
+        
+        if (prevPlayer && newPlayer && prevPlayer.roomLastSeen) {
+          console.log('Preserving roomLastSeen data during real-time update');
+          newPlayer.roomLastSeen = prevPlayer.roomLastSeen;
+        }
+        
+        return newSession;
+      });
     },
     onNewMessage: (message) => {
       console.log('New message received:', message);
@@ -113,10 +128,9 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       } : null);
     },
     onParticipantChange: () => {
-      console.log('Participant list changed, refetching session');
-      if (sessionId) {
-        fetchSession(sessionId);
-      }
+      console.log('Participant list changed - avoiding full refetch to preserve unread counts');
+      // Don't refetch session to avoid overwriting roomLastSeen data
+      // Real-time updates via onSessionUpdate should handle participant changes
     },
       onInitiativeUpdate: (initiativeOrder) => {
         console.log('Initiative order updated:', initiativeOrder);
@@ -182,7 +196,22 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
         const data = await response.json();
         console.log('Fetched session data:', data.session);
         console.log('Players in session:', data.session.players);
-        setSession(data.session);
+        
+        // Preserve current user's roomLastSeen data when updating session
+        setSession(prevSession => {
+          if (!prevSession || !user) return data.session;
+          
+          const newSession = { ...data.session };
+          const prevPlayer = prevSession.players.find(p => p.userId === user.id);
+          const newPlayer = newSession.players.find(p => p.userId === user.id);
+          
+          if (prevPlayer && newPlayer && prevPlayer.roomLastSeen) {
+            console.log('Preserving roomLastSeen data for user:', user.id);
+            newPlayer.roomLastSeen = prevPlayer.roomLastSeen;
+          }
+          
+          return newSession;
+        });
       } else {
         setError('Session not found');
       }

@@ -98,8 +98,10 @@ export async function POST(
         }
       }
 
+      // Use markModified to ensure Map changes are saved
+      session.markModified(`players.${playerIndex}.roomLastSeen`);
       await session.save();
-      console.log('Mark read - Session saved');
+      console.log('Mark read - Session saved with markModified');
     }
 
     return NextResponse.json({
