@@ -549,6 +549,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 chatRooms={session?.chatRooms || []}
                 currentRoomId={currentRoomId}
                 onRoomChange={(roomId) => {
+                  console.log(`Dashboard: User clicked room ${roomId}, marking as read`);
                   setCurrentRoomId(roomId);
                   setActiveTab('chat'); // Auto-switch to chat tab when room is selected
                   markRoomAsRead(roomId); // Mark room as read when switching

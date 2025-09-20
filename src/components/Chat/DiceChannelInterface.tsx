@@ -58,12 +58,8 @@ export default function DiceChannelInterface({
     prevMessageCountRef.current = currentMessageCount;
   }, [diceMessages.length]);
 
-  // Mark room as read when component mounts or room changes
-  useEffect(() => {
-    if (onMarkAsRead && currentRoom.id) {
-      onMarkAsRead(currentRoom.id);
-    }
-  }, [currentRoom.id, onMarkAsRead]);
+  // Mark room as read only when user actively views it (not on component mount)
+  // This prevents automatic mark-read on page refresh or tab switching
 
   const handleDiceRoll = async (diceExpression?: string) => {
     const expression = diceExpression || diceInput;
