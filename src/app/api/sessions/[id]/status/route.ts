@@ -57,24 +57,36 @@ export async function POST(
     // Update user's online status
     const player = session.players.find((p: any) => p.userId === decoded.userId);
     if (player) {
+      const previousStatus = player.isOnline;
+      const now = new Date();
+      
+      // Only update if status actually changed
+      const statusChanged = player.isOnline !== isOnline;
+      
       player.isOnline = isOnline;
-      player.lastSeen = new Date();
+      player.lastSeen = now;
       
       await session.save();
 
-      console.log(`User ${decoded.userId} status updated to: ${isOnline ? 'online' : 'offline'}`);
+      console.log(`User ${decoded.userId} status updated to: ${isOnline ? 'online' : 'offline'} (changed: ${statusChanged})`);
 
-      // Broadcast status update
-      broadcastToSession(session._id.toString(), {
-        type: 'participant_status_update',
-        userId: decoded.userId,
-        isOnline,
-        timestamp: new Date().toISOString()
-      });
+      // Only broadcast if status actually changed (optimization)
+      if (statusChanged) {
+        console.log(`Broadcasting status change for user ${decoded.userId}: ${previousStatus} → ${isOnline}`);
+        
+        broadcastToSession(session._id.toString(), {
+          type: 'participant_status_update',
+          userId: decoded.userId,
+          isOnline,
+          previousStatus,
+          timestamp: now.toISOString()
+        });
+      }
 
       return NextResponse.json({
         success: true,
-        message: 'Status updated'
+        message: 'Status updated',
+        statusChanged
       });
     }
 

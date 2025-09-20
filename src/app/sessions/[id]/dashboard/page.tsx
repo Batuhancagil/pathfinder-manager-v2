@@ -172,6 +172,38 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
           return newSession;
         });
       },
+      onCriticalStatusUpdate: (userId, isOnline, statusType, userName) => {
+        console.log(`Critical status update: ${userName} ${isOnline ? 'joined' : 'left'} (${statusType})`);
+        
+        // Show real-time status notifications
+        if (statusType === 'joined_session') {
+          setError(`✅ ${userName} joined the session`);
+          setTimeout(() => setError(''), 3000);
+        } else if (statusType === 'left_session') {
+          setError(`❌ ${userName} left the session`);
+          setTimeout(() => setError(''), 3000);
+        }
+        
+        // Update player status immediately (before polling catches up)
+        setSession(prev => {
+          if (!prev) return prev;
+          
+          const newSession = { ...prev };
+          const playerIndex = newSession.players.findIndex(p => p.userId === userId);
+          
+          if (playerIndex !== -1) {
+            newSession.players = [...newSession.players];
+            newSession.players[playerIndex] = {
+              ...newSession.players[playerIndex],
+              isOnline,
+              lastSeen: new Date().toISOString()
+            };
+            console.log(`Updated critical status for user ${userId}: ${isOnline}`);
+          }
+          
+          return newSession;
+        });
+      },
     onWebRTCSignal: handleWebRTCSignal
   });
 

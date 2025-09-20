@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../components/Chat/ChatInterface';
 
 interface SessionEvent {
-  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'initiative_update' | 'chat_rooms_update' | 'room_read_update' | 'webrtc_signal';
+  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'user_status_critical' | 'initiative_update' | 'chat_rooms_update' | 'room_read_update' | 'webrtc_signal';
   sessionId?: string;
   userId?: string;
   isOnline?: boolean;
@@ -20,6 +20,9 @@ interface SessionEvent {
   chatRooms?: any[];
   roomId?: string;
   lastMessageId?: string;
+  userName?: string;
+  statusType?: string;
+  previousStatus?: boolean;
   signalType?: string;
   data?: any;
   fromUserId?: string;
@@ -35,6 +38,7 @@ interface UseSessionEventsProps {
   onInitiativeUpdate?: (initiativeOrder: any[]) => void;
   onChatRoomsUpdate?: (chatRooms: any[]) => void;
   onRoomReadUpdate?: (userId: string, roomId: string, lastMessageId: string) => void;
+  onCriticalStatusUpdate?: (userId: string, isOnline: boolean, statusType: string, userName: string) => void;
   onWebRTCSignal?: (signal: any) => void;
 }
 
@@ -46,6 +50,7 @@ export function useSessionEvents({
   onInitiativeUpdate,
   onChatRoomsUpdate,
   onRoomReadUpdate,
+  onCriticalStatusUpdate,
   onWebRTCSignal
 }: UseSessionEventsProps) {
   const [connected, setConnected] = useState(false);
@@ -124,6 +129,13 @@ export function useSessionEvents({
             if (data.userId && data.roomId && onRoomReadUpdate) {
               console.log(`Real-time read receipt: User ${data.userId} read room ${data.roomId}`);
               onRoomReadUpdate(data.userId, data.roomId, data.lastMessageId);
+            }
+            break;
+
+          case 'user_status_critical':
+            if (data.userId && onCriticalStatusUpdate) {
+              console.log(`Critical status update: User ${data.userName} ${data.isOnline ? 'joined' : 'left'} (${data.statusType})`);
+              onCriticalStatusUpdate(data.userId, data.isOnline, data.statusType, data.userName);
             }
             break;
 

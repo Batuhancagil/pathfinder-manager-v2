@@ -145,6 +145,16 @@ export async function POST(
         },
         timestamp: new Date().toISOString()
       });
+
+      // Broadcast critical online status change
+      broadcastToSession(session._id.toString(), {
+        type: 'user_status_critical',
+        userId: user._id.toString(),
+        userName: user.name,
+        isOnline: false,
+        statusType: 'left_session',
+        timestamp: new Date().toISOString()
+      });
     }
 
     return NextResponse.json({

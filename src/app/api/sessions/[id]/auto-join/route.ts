@@ -119,6 +119,8 @@ export async function POST(
     // Broadcast update
     try {
       const { broadcastToSession } = await import('../../../../../lib/sessionBroadcast');
+      
+      // Broadcast session update
       broadcastToSession(session._id.toString(), {
         type: 'session_update',
         session: {
@@ -128,6 +130,16 @@ export async function POST(
           chatMessages: session.chatMessages.slice(-50),
           isActive: session.isActive
         },
+        timestamp: new Date().toISOString()
+      });
+
+      // Broadcast critical online status change
+      broadcastToSession(session._id.toString(), {
+        type: 'user_status_critical',
+        userId: user._id.toString(),
+        userName: user.name,
+        isOnline: true,
+        statusType: 'joined_session',
         timestamp: new Date().toISOString()
       });
     } catch (error) {

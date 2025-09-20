@@ -54,7 +54,7 @@ export function useOnlineStatus({ sessionId, userId, enabled }: UseOnlineStatusP
     // Set initial online status
     updateStatus(true);
 
-    // Update status every 30 seconds
+    // Update status every 60 seconds (optimized from 30s)
     statusIntervalRef.current = setInterval(() => {
       const timeSinceActivity = Date.now() - lastActivityRef.current;
       
@@ -63,9 +63,12 @@ export function useOnlineStatus({ sessionId, userId, enabled }: UseOnlineStatusP
         console.log('No activity for 5 minutes, setting offline');
         setOffline();
       } else {
-        updateStatus(true);
+        // Only send heartbeat if we're currently online (optimization)
+        if (isOnlineRef.current) {
+          updateStatus(true);
+        }
       }
-    }, 30000);
+    }, 60000); // 60s instead of 30s
 
     // Handle page visibility changes (but don't immediately go offline on tab switch)
     const handleVisibilityChange = () => {
