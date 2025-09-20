@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import connectDB from '../../../../../lib/mongodb';
 import Session from '../../../../../models/Session';
 import User from '../../../../../models/User';
+import { broadcastToSession } from '../../../../../lib/sessionBroadcast';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -80,20 +81,24 @@ export async function POST(
         session.players[playerIndex].roomLastSeen = new Map();
       }
 
+      // Get room messages for broadcast
+      const roomMessages = session.chatMessages.filter((msg: any) => 
+        (msg.roomId || 'general') === roomId
+      );
+      console.log(`Mark read - Room ${roomId} has ${roomMessages.length} messages`);
+
+      let finalMessageId = lastMessageId;
+
       // Update last seen message for this room
       if (lastMessageId) {
         session.players[playerIndex].roomLastSeen.set(roomId, lastMessageId);
         console.log(`Mark read - Set room ${roomId} to message ${lastMessageId}`);
       } else {
         // If no specific message ID, mark all current messages as read
-        const roomMessages = session.chatMessages.filter((msg: any) => 
-          (msg.roomId || 'general') === roomId
-        );
-        console.log(`Mark read - Room ${roomId} has ${roomMessages.length} messages`);
-        
         if (roomMessages.length > 0) {
           const latestMessageId = roomMessages[roomMessages.length - 1].id;
           session.players[playerIndex].roomLastSeen.set(roomId, latestMessageId);
+          finalMessageId = latestMessageId;
           console.log(`Mark read - Set room ${roomId} to latest message ${latestMessageId}`);
         }
       }
@@ -102,6 +107,20 @@ export async function POST(
       session.markModified(`players.${playerIndex}.roomLastSeen`);
       await session.save();
       console.log('Mark read - Session saved with markModified');
+
+      // Broadcast read receipt to all participants
+      try {
+        broadcastToSession(session._id.toString(), {
+          type: 'room_read_update',
+          userId: decoded.userId,
+          roomId: roomId,
+          lastMessageId: finalMessageId,
+          timestamp: new Date().toISOString()
+        });
+        console.log(`Mark read - Broadcasted read receipt for room ${roomId}`);
+      } catch (broadcastError) {
+        console.warn('Failed to broadcast read receipt:', broadcastError);
+      }
     }
 
     return NextResponse.json({

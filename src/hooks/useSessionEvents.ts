@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ChatMessage } from '../components/Chat/ChatInterface';
 
 interface SessionEvent {
-  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'initiative_update' | 'chat_rooms_update' | 'webrtc_signal';
+  type: 'connected' | 'session_update' | 'new_message' | 'participant_joined' | 'participant_left' | 'participant_status_update' | 'initiative_update' | 'chat_rooms_update' | 'room_read_update' | 'webrtc_signal';
   sessionId?: string;
   userId?: string;
   isOnline?: boolean;
@@ -18,6 +18,8 @@ interface SessionEvent {
   };
   initiativeOrder?: any[];
   chatRooms?: any[];
+  roomId?: string;
+  lastMessageId?: string;
   signalType?: string;
   data?: any;
   fromUserId?: string;
@@ -32,6 +34,7 @@ interface UseSessionEventsProps {
   onParticipantChange?: () => void;
   onInitiativeUpdate?: (initiativeOrder: any[]) => void;
   onChatRoomsUpdate?: (chatRooms: any[]) => void;
+  onRoomReadUpdate?: (userId: string, roomId: string, lastMessageId: string) => void;
   onWebRTCSignal?: (signal: any) => void;
 }
 
@@ -42,6 +45,7 @@ export function useSessionEvents({
   onParticipantChange,
   onInitiativeUpdate,
   onChatRoomsUpdate,
+  onRoomReadUpdate,
   onWebRTCSignal
 }: UseSessionEventsProps) {
   const [connected, setConnected] = useState(false);
@@ -113,6 +117,13 @@ export function useSessionEvents({
           case 'chat_rooms_update':
             if (data.chatRooms && onChatRoomsUpdate) {
               onChatRoomsUpdate(data.chatRooms);
+            }
+            break;
+
+          case 'room_read_update':
+            if (data.userId && data.roomId && onRoomReadUpdate) {
+              console.log(`Real-time read receipt: User ${data.userId} read room ${data.roomId}`);
+              onRoomReadUpdate(data.userId, data.roomId, data.lastMessageId);
             }
             break;
 

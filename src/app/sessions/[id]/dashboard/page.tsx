@@ -146,6 +146,32 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
           chatRooms
         } : null);
       },
+      onRoomReadUpdate: (userId, roomId, lastMessageId) => {
+        console.log(`Real-time read receipt: User ${userId} read room ${roomId} up to ${lastMessageId}`);
+        
+        // Update the specific user's roomLastSeen data in real-time
+        setSession(prev => {
+          if (!prev) return prev;
+          
+          const newSession = { ...prev };
+          const playerIndex = newSession.players.findIndex(p => p.userId === userId);
+          
+          if (playerIndex !== -1) {
+            // Create a copy of the player
+            newSession.players = [...newSession.players];
+            newSession.players[playerIndex] = { 
+              ...newSession.players[playerIndex],
+              roomLastSeen: {
+                ...newSession.players[playerIndex].roomLastSeen,
+                [roomId]: lastMessageId
+              }
+            };
+            console.log(`Updated roomLastSeen for user ${userId} in room ${roomId}`);
+          }
+          
+          return newSession;
+        });
+      },
     onWebRTCSignal: handleWebRTCSignal
   });
 

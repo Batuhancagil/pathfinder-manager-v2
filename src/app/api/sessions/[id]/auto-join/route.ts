@@ -98,7 +98,8 @@ export async function POST(
       characterName: `${user.name}`,
       joinedAt: new Date(),
       isOnline: true,
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      roomLastSeen: new Map() // Initialize empty roomLastSeen
     });
 
     // Add system message
