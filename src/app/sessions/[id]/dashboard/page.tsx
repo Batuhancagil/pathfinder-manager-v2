@@ -259,18 +259,25 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
 
     // Get current user from players array
     const currentPlayer = session.players.find(p => p.userId === user.id);
-    if (!currentPlayer) return 0;
+    if (!currentPlayer) {
+      console.log('Current player not found for unread count');
+      return 0;
+    }
 
     // Get last seen message ID for this room
     const lastSeenMessageId = currentPlayer.roomLastSeen?.[roomId];
+    console.log(`Room ${roomId} last seen:`, lastSeenMessageId);
     
     // Get all messages for this room
     const roomMessages = session.chatMessages.filter(msg => 
       (msg.roomId || 'general') === roomId
     );
 
+    console.log(`Room ${roomId} total messages:`, roomMessages.length);
+
     if (!lastSeenMessageId) {
       // If never seen any message, all are unread
+      console.log(`Room ${roomId} never seen, unread:`, roomMessages.length);
       return roomMessages.length;
     }
 
@@ -279,11 +286,14 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
     
     if (lastSeenIndex === -1) {
       // Last seen message not found, assume all are unread
+      console.log(`Room ${roomId} last seen not found, unread:`, roomMessages.length);
       return roomMessages.length;
     }
 
     // Count messages after the last seen one
-    return roomMessages.length - (lastSeenIndex + 1);
+    const unreadCount = roomMessages.length - (lastSeenIndex + 1);
+    console.log(`Room ${roomId} calculated unread:`, unreadCount);
+    return unreadCount;
   };
 
   const handleSendRoll = async (rollResult: string) => {

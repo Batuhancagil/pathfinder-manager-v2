@@ -35,10 +35,24 @@ export default function ChatRoomInterface({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Filter messages for current room
+  const roomMessages = messages.filter(msg => 
+    (msg.roomId || 'general') === currentRoom.id
+  );
+
+  // Auto-scroll to bottom when new messages arrive (not on initial load)
+  const prevMessageCountRef = useRef(0);
+  
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const currentMessageCount = roomMessages.length;
+    
+    // Only scroll if messages increased (new message arrived)
+    if (currentMessageCount > prevMessageCountRef.current && prevMessageCountRef.current > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    prevMessageCountRef.current = currentMessageCount;
+  }, [roomMessages.length]);
 
   // Mark room as read when component mounts or room changes
   useEffect(() => {
@@ -46,11 +60,6 @@ export default function ChatRoomInterface({
       onMarkAsRead(currentRoom.id);
     }
   }, [currentRoom.id, onMarkAsRead]);
-
-  // Filter messages for current room
-  const roomMessages = messages.filter(msg => 
-    (msg.roomId || 'general') === currentRoom.id
-  );
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

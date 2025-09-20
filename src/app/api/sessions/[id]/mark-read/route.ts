@@ -72,6 +72,8 @@ export async function POST(
       player.userId === user._id.toString()
     );
 
+    console.log('Mark read - User found at index:', playerIndex);
+
     if (playerIndex !== -1) {
       // Initialize roomLastSeen if it doesn't exist
       if (!session.players[playerIndex].roomLastSeen) {
@@ -81,18 +83,23 @@ export async function POST(
       // Update last seen message for this room
       if (lastMessageId) {
         session.players[playerIndex].roomLastSeen.set(roomId, lastMessageId);
+        console.log(`Mark read - Set room ${roomId} to message ${lastMessageId}`);
       } else {
         // If no specific message ID, mark all current messages as read
         const roomMessages = session.chatMessages.filter((msg: any) => 
           (msg.roomId || 'general') === roomId
         );
+        console.log(`Mark read - Room ${roomId} has ${roomMessages.length} messages`);
+        
         if (roomMessages.length > 0) {
           const latestMessageId = roomMessages[roomMessages.length - 1].id;
           session.players[playerIndex].roomLastSeen.set(roomId, latestMessageId);
+          console.log(`Mark read - Set room ${roomId} to latest message ${latestMessageId}`);
         }
       }
 
       await session.save();
+      console.log('Mark read - Session saved');
     }
 
     return NextResponse.json({

@@ -39,10 +39,24 @@ export default function DiceChannelInterface({
   const [isRolling, setIsRolling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Filter messages for dice room
+  const diceMessages = messages.filter(msg => 
+    (msg.roomId || 'general') === currentRoom.id
+  );
+
+  // Auto-scroll to bottom when new messages arrive (not on initial load)
+  const prevMessageCountRef = useRef(0);
+  
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const currentMessageCount = diceMessages.length;
+    
+    // Only scroll if messages increased (new message arrived)
+    if (currentMessageCount > prevMessageCountRef.current && prevMessageCountRef.current > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    prevMessageCountRef.current = currentMessageCount;
+  }, [diceMessages.length]);
 
   // Mark room as read when component mounts or room changes
   useEffect(() => {
@@ -50,11 +64,6 @@ export default function DiceChannelInterface({
       onMarkAsRead(currentRoom.id);
     }
   }, [currentRoom.id, onMarkAsRead]);
-
-  // Filter messages for dice room
-  const diceMessages = messages.filter(msg => 
-    (msg.roomId || 'general') === currentRoom.id
-  );
 
   const handleDiceRoll = async (diceExpression?: string) => {
     const expression = diceExpression || diceInput;
