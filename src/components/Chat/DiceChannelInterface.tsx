@@ -21,6 +21,7 @@ interface DiceChannelInterfaceProps {
   currentRoom: IChatRoom;
   messages: ChatMessageExtended[];
   onSendMessage: (message: string, type?: 'chat' | 'roll' | 'system', roomId?: string) => Promise<void>;
+  onMarkAsRead?: (roomId: string) => Promise<void>;
 }
 
 const QUICK_DICE = ['1d20', '1d12', '1d10', '1d8', '1d6', '1d4', '2d6', '3d6'];
@@ -30,7 +31,8 @@ export default function DiceChannelInterface({
   userId,
   currentRoom,
   messages,
-  onSendMessage
+  onSendMessage,
+  onMarkAsRead
 }: DiceChannelInterfaceProps) {
   const [diceInput, setDiceInput] = useState('1d20');
   const [characterName, setCharacterName] = useState('');
@@ -41,6 +43,13 @@ export default function DiceChannelInterface({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Mark room as read when component mounts or room changes
+  useEffect(() => {
+    if (onMarkAsRead && currentRoom.id) {
+      onMarkAsRead(currentRoom.id);
+    }
+  }, [currentRoom.id, onMarkAsRead]);
 
   // Filter messages for dice room
   const diceMessages = messages.filter(msg => 

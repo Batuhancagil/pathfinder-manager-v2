@@ -48,6 +48,7 @@ interface Player {
   joinedAt: string;
   isOnline: boolean;
   lastSeen: string;
+  roomLastSeen?: { [roomId: string]: string };
 }
 
 interface Session {
@@ -230,6 +231,59 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
       console.error('Failed to create room:', error);
       setError(error instanceof Error ? error.message : 'Failed to create room');
     }
+  };
+
+  const markRoomAsRead = async (roomId: string) => {
+    if (!sessionId || !user) return;
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/mark-read`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomId }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to mark room as read');
+      }
+    } catch (error) {
+      console.warn('Failed to mark room as read:', error);
+    }
+  };
+
+  const getUnreadCount = (roomId: string): number => {
+    if (!session || !user) return 0;
+
+    // Get current user from players array
+    const currentPlayer = session.players.find(p => p.userId === user.id);
+    if (!currentPlayer) return 0;
+
+    // Get last seen message ID for this room
+    const lastSeenMessageId = currentPlayer.roomLastSeen?.[roomId];
+    
+    // Get all messages for this room
+    const roomMessages = session.chatMessages.filter(msg => 
+      (msg.roomId || 'general') === roomId
+    );
+
+    if (!lastSeenMessageId) {
+      // If never seen any message, all are unread
+      return roomMessages.length;
+    }
+
+    // Find the index of last seen message
+    const lastSeenIndex = roomMessages.findIndex(msg => msg.id === lastSeenMessageId);
+    
+    if (lastSeenIndex === -1) {
+      // Last seen message not found, assume all are unread
+      return roomMessages.length;
+    }
+
+    // Count messages after the last seen one
+    return roomMessages.length - (lastSeenIndex + 1);
   };
 
   const handleSendRoll = async (rollResult: string) => {
@@ -487,13 +541,13 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                 onRoomChange={(roomId) => {
                   setCurrentRoomId(roomId);
                   setActiveTab('chat'); // Auto-switch to chat tab when room is selected
+                  markRoomAsRead(roomId); // Mark room as read when switching
                 }}
                 onCreateRoom={handleCreateRoom}
                 messageCount={(() => {
                   const counts: { [roomId: string]: number } = {};
-                  (session?.chatMessages || []).forEach(msg => {
-                    const roomId = msg.roomId || 'general';
-                    counts[roomId] = (counts[roomId] || 0) + 1;
+                  (session?.chatRooms || []).forEach(room => {
+                    counts[room.id] = getUnreadCount(room.id);
                   });
                   return counts;
                 })()}
@@ -539,6 +593,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                             currentRoom={currentRoom}
                             messages={session?.chatMessages || []}
                             onSendMessage={handleSendMessage}
+                            onMarkAsRead={markRoomAsRead}
                           />
                         );
                       }
@@ -551,6 +606,7 @@ export default function SessionDashboard({ params }: { params: Promise<{ id: str
                           currentRoom={currentRoom}
                           messages={session?.chatMessages || []}
                           onSendMessage={handleSendMessage}
+                          onMarkAsRead={markRoomAsRead}
                         />
                       );
                     })()}

@@ -7,6 +7,7 @@ export interface IPlayer {
   joinedAt: Date;
   isOnline: boolean;
   lastSeen: Date;
+  roomLastSeen: { [roomId: string]: string }; // Track last seen message ID per room
 }
 
 export interface IChatMessage {
@@ -84,6 +85,11 @@ const PlayerSchema = new Schema<IPlayer>({
   lastSeen: {
     type: Date,
     default: Date.now
+  },
+  roomLastSeen: {
+    type: Map,
+    of: String,
+    default: () => new Map()
   }
 });
 

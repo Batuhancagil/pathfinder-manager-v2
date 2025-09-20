@@ -20,6 +20,7 @@ interface ChatRoomInterfaceProps {
   currentRoom: IChatRoom;
   messages: ChatMessageExtended[];
   onSendMessage: (message: string, type?: 'chat' | 'roll' | 'system', roomId?: string) => Promise<void>;
+  onMarkAsRead?: (roomId: string) => Promise<void>;
 }
 
 export default function ChatRoomInterface({
@@ -27,7 +28,8 @@ export default function ChatRoomInterface({
   userId,
   currentRoom,
   messages,
-  onSendMessage
+  onSendMessage,
+  onMarkAsRead
 }: ChatRoomInterfaceProps) {
   const [messageInput, setMessageInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +39,13 @@ export default function ChatRoomInterface({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Mark room as read when component mounts or room changes
+  useEffect(() => {
+    if (onMarkAsRead && currentRoom.id) {
+      onMarkAsRead(currentRoom.id);
+    }
+  }, [currentRoom.id, onMarkAsRead]);
 
   // Filter messages for current room
   const roomMessages = messages.filter(msg => 
